@@ -16,6 +16,7 @@ export default function Signup() {
     username: '',
     email: '',
     password: '',
+    role: 'user',
   });
 
   const handleChange = (e) => {
@@ -63,6 +64,7 @@ export default function Signup() {
         username: "",
         email: "",
         password: "",
+        role: "user",
       });
 
       // Navigate to OTP page
@@ -134,6 +136,23 @@ export default function Signup() {
                 autoComplete="email"
                 required
               />
+            </div>
+          </div>
+
+          {/* Role */}
+          <div className="field-group">
+            <label className="field-label" htmlFor="role">I am signing up as</label>
+            <div className="input-wrapper">
+              <select
+                className="field-input"
+                id="role"
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+              >
+                <option value="user">Candidate</option>
+                <option value="interviewer">Interviewer</option>
+              </select>
             </div>
           </div>
 

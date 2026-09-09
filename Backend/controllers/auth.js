@@ -9,12 +9,16 @@ import bcrypt from "bcryptjs";
 export const Signup = async (req, res, next) => {
   console.log("api hit");
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
 
     // Validation
     if (!username || !email || !password) {
       return next(new ExpressError(400, "Username, email and password are required"));
     }
+
+    // Validate role (only 'user' and 'interviewer' allowed during signup)
+    const allowedRoles = ["user", "interviewer"];
+    const selectedRole = allowedRoles.includes(role) ? role : "user";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return next(new ExpressError(400, "Please provide a valid email address"));
     }
@@ -68,7 +72,7 @@ export const Signup = async (req, res, next) => {
        username: username.trim(),
        email: email.trim().toLowerCase(),
        password: hashedPassword,
-       role: "user",
+       role: selectedRole,
       };
 
     await redis.set(
@@ -109,7 +113,7 @@ export const Login = async (req, res, next) => {
 
     // Find user
     const [users] = await db.execute(
-      `SELECT user_id, username, password ,profileExist
+      `SELECT user_id, username, password, role, verify
        FROM users 
        WHERE username = ?`,
       [username]
@@ -122,6 +126,13 @@ export const Login = async (req, res, next) => {
     }
 
     const user = users[0];
+
+    // Check if email is verified
+    if (!user.verify) {
+      return next(
+        new ExpressError(403, "Please verify your email before logging in")
+      );
+    }
 
     // Password verification
     const isMatch = await bcrypt.compare(
@@ -138,7 +149,7 @@ export const Login = async (req, res, next) => {
     // JWT Payload
     const payload = {
       id: user.user_id,
-      role: "user",
+      role: user.role,
     };
 
     const token = createToken(payload);
@@ -157,7 +168,7 @@ export const Login = async (req, res, next) => {
       success: true,
       message: "User successfully logged in",
       jwtToken: token,
-      user:user.profileExist,
+      role: user.role,
     });
 
   } catch (err) {

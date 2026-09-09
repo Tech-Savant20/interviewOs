@@ -79,12 +79,10 @@ export default function Login() {
       setError(res.message || "Login failed");
     }
 
-    if(res.user===1){
-      navigate("/");
-    }else{
-      navigate("/profileSetup", {
-        replace: true,
-      });
+    if (res.role === "interviewer") {
+      navigate("/interviewer-dashboard", { replace: true });
+    } else {
+      navigate("/", { replace: true });
     }
   } catch (err) {
     console.error("Login Error:", err);
