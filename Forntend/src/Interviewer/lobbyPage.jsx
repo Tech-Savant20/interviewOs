@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
@@ -58,7 +59,7 @@ export default function Lobby() {
     setConnecting(true);
 
     const response = await fetch(
-      "https://interviewos.online/api/getMeetingUrl",
+      `${API_URL}/api/getMeetingUrl`,
       {
         method: "POST",
         credentials: "include",
@@ -86,7 +87,8 @@ export default function Lobby() {
     );
 
     
-    navigate(`${data.url}`, {
+    // meeting_link is a full URL; route to its path inside this app
+    navigate(new URL(data.url, window.location.origin).pathname, {
       replace: true,
     });
 

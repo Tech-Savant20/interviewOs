@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import React, { useEffect, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
@@ -107,7 +108,7 @@ export default function InterviewRoom() {
       setFeedback("");
       setScore(null);
       setAnswer("");
-      const res = await fetch("https://interviewos.online/api/ai/interview-questions", {
+      const res = await fetch(`${API_URL}/api/ai/interview-questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -138,7 +139,7 @@ export default function InterviewRoom() {
     try {
       setLoading(true);
       if (recognitionRef.current) { isListeningRef.current = false; setIsListening(false); recognitionRef.current.stop(); }
-      const res = await fetch("https://interviewos.online/api/ai/evaluate-answer", {
+      const res = await fetch(`${API_URL}/api/ai/evaluate-answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import * as React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -31,7 +32,7 @@ function Header() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/profile", {
+        const res = await fetch(`${API_URL}/api/profile`, {
           credentials: "include",
         });
         await res.json();
@@ -78,7 +79,7 @@ function Header() {
     }
     if (item === "Logout") {
       const logout = async () => {
-        const response = await fetch("https://interviewos.online/api/logout", {
+        const response = await fetch(`${API_URL}/api/logout`, {
           method: "GET",
           credentials: "include",
         });

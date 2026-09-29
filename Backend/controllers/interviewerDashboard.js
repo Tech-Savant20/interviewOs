@@ -158,7 +158,7 @@ export const scheduleInterview = async (req, res, next) => {
     // logged in interviewer
     const interviewer_id = req.user.id;
 
-    const meeting_link=`https://interviewos.online/call/${uuidv4()}`
+    const meeting_link=`${process.env.CLIENT_URL || "https://interviewos.online"}/call/${uuidv4()}`
     
     // validation
     if (
@@ -519,7 +519,7 @@ export const getResumeUrl = async (req, res) => {
 
   console.log("Retrieved resume URL:", rows[0]?.resume_url);
 
-  if (!rows.length) {
+  if (!rows.length || !rows[0].resume_url) {
     return res.status(404).json({
       success: false,
       message: "Resume not found",
@@ -527,6 +527,11 @@ export const getResumeUrl = async (req, res) => {
   }
 
   const resumeUrl = rows[0].resume_url;
+
+  // Resumes stored locally (RESUME_STORAGE=local) are served directly
+  if (!resumeUrl.includes(".amazonaws.com/")) {
+    return res.json({ success: true, url: resumeUrl });
+  }
 
   const key = resumeUrl.split(".amazonaws.com/")[1];
 

@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Box,
   TextField,
@@ -49,7 +50,7 @@ export default function EditJob() {
     const fetchJob = async () => {
       try {
         const res = await fetch(
-          `https://interviewos.online/api/get-job/${job_id}`,
+          `${API_URL}/api/get-job/${job_id}`,
           { credentials: "include" }
         );
         const data = await res.json();
@@ -114,7 +115,7 @@ export default function EditJob() {
     setSubmitting(true);
     try {
       const response = await fetch(
-        `https://interviewos.online/api/edit-job/${job_id}`,
+        `${API_URL}/api/edit-job/${job_id}`,
         {
           method: "PUT",
           credentials: "include",

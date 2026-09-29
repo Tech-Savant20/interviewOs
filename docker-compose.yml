@@ -1,0 +1,27 @@
+# Local MySQL + Redis for development. Start with: docker compose up -d
+# The schema and demo data load automatically the first time the database volume is created.
+# To reset the database: docker compose down -v && docker compose up -d
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: interviewos
+      MYSQL_DATABASE: interviewos
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./Backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./Backend/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pinterviewos"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  mysql-data:

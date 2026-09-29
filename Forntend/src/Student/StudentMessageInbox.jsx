@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
@@ -45,7 +46,7 @@ export default function StudentMessageInbox() {
 
   const getChatMessages = async (userId) => {
     try {
-      const res = await fetch(`https://interviewos.online/api/chat/${userId}`, {
+      const res = await fetch(`${API_URL}/api/chat/${userId}`, {
         method: "GET",
         credentials: "include",
       });
@@ -69,7 +70,7 @@ export default function StudentMessageInbox() {
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/me", {
+        const res = await fetch(`${API_URL}/api/me`, {
           credentials: "include",
         });
 
@@ -97,7 +98,7 @@ export default function StudentMessageInbox() {
     const fetchInterviewers = async () => {
       try {
         const res = await fetch(
-          "https://interviewos.online/api/student-inbox-users",
+          `${API_URL}/api/student-inbox-users`,
           {
             method: "GET",
             credentials: "include",
@@ -201,7 +202,7 @@ export default function StudentMessageInbox() {
     });
 
     // Save to DB in background — don't block real-time on this
-    fetch("https://interviewos.online/api/save-message", {
+    fetch(`${API_URL}/api/save-message`, {
       method: "POST",
       credentials: "include",
       headers: {

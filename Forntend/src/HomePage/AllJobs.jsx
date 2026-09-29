@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Card,
   CardContent,
@@ -20,7 +21,7 @@ import { useEffect, useState } from "react";
 import Pagination from "./Pagination.jsx";
 import { useNavigate } from "react-router-dom";
 
-const BASE = "https://interviewos.online";
+const BASE = API_URL;
 
 export default function AllJobs({ filterParams = {} }) {
   const navigate = useNavigate();

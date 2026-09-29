@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Box,
   Typography,
@@ -22,7 +23,7 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BASE = "https://interviewos.online";
+const BASE = API_URL;
 
 export default function ScheduledInterview({ setActiveView }) {
   const [interviews, setInterviews] = useState([]);

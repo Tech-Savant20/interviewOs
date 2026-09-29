@@ -1,10 +1,11 @@
+import { API_URL } from "../config.js";
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate, useParams } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { useAuth } from "../AuthContext.jsx";
 
-const socket = io("https://interviewos.online", { withCredentials: true });
+const socket = io(API_URL || undefined, { withCredentials: true });
 
 const LANGUAGES = [
   { id: "javascript", label: "JavaScript" },
@@ -225,7 +226,7 @@ export default function VideoCall() {
 
     let result;
     try {
-      const res = await fetch("https://interviewos.online/api/run-code", {
+      const res = await fetch(`${API_URL}/api/run-code`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language, code }),
@@ -244,7 +245,7 @@ export default function VideoCall() {
 
   const handleSend = async () => {
     try {
-      const res = await fetch("https://interviewos.online/api/interviewer-inbox-users", {
+      const res = await fetch(`${API_URL}/api/interviewer-inbox-users`, {
         method: "GET", credentials: "include",
       });
       const data = await res.json();
@@ -253,8 +254,8 @@ export default function VideoCall() {
   };
 
   const handleSendRoomId = async (receiverId) => {
-    const message = `You are invited to an interview.\n\nRoom ID: ${roomId}\n\nJoin Here: https://interviewos.online/call/${roomId}`;
-    await fetch("https://interviewos.online/api/save-message", {
+    const message = `You are invited to an interview.\n\nRoom ID: ${roomId}\n\nJoin Here: ${window.location.origin}/call/${roomId}`;
+    await fetch(`${API_URL}/api/save-message`, {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ receiverId, text: message }),

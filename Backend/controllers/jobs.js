@@ -9,7 +9,13 @@ import { queryWithRetry } from "../utils/queryWithRetry.js";
 import redis from "../Redis.js";
 
 import SkillMatchingEmailQueue from "../queues/SkillMatchingEmailQueue.js";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
+export const LOCAL_RESUME_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)), "..", "uploads", "resumes"
+);
 
 
 export const allJobs = async (req, res, next) => {
@@ -102,8 +108,16 @@ export const applyJob = async (req, res, next) => {
     console.log("Bucket Name:", process.env.S3_BUCKET_NAME);
    console.log("Region:", process.env.AWS_REGION);
 
+    // Local development: keep resumes on disk instead of S3
+    if (req.file && process.env.RESUME_STORAGE === "local") {
+      const safeName = path.basename(req.file.originalname).replace(/[^\w.-]/g, "_");
+      const fileName = `${Date.now()}-${safeName}`;
+      await fs.mkdir(LOCAL_RESUME_DIR, { recursive: true });
+      await fs.writeFile(path.join(LOCAL_RESUME_DIR, fileName), req.file.buffer);
+      resumeUrl = `/uploads/resumes/${fileName}`;
+    }
     // Upload Resume To S3
-    if (req.file) {
+    else if (req.file) {
       const fileKey = `resumes/${Date.now()}-${req.file.originalname}`;
 
       await s3.send(
@@ -448,7 +462,7 @@ export const postJob = async (req, res, next) => {
   <td style="padding: 0 40px 36px; text-align:center;">
 
     <a
-      href="http://localhost:5173/jobs/${job_id}"
+      href="${process.env.CLIENT_URL || "https://interviewos.online"}/job/apply/${job_id}"
       style="
         display:inline-block;
         background-color:#1976d2;
@@ -582,6 +596,49 @@ export const myJobs = async (req, res, next) => {
   } catch (err) {
     console.log("My Jobs Error:", err);
     next(new expressError("Failed to fetch jobs", 500));
+  }
+};
+
+export const getJob = async (req, res, next) => {
+  try {
+    const { job_id } = req.params;
+
+    const [jobs] = await db.execute(
+      `SELECT
+          j.job_id,
+          j.company,
+          j.job_name,
+          j.experience,
+          j.job_type,
+          j.description,
+          j.role,
+          j.min_salary,
+          j.max_salary,
+          j.created_at
+       FROM jobs j
+       WHERE j.job_id = ? AND j.posted_by = ?`,
+      [job_id, req.user.id]
+    );
+
+    if (jobs.length === 0) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    const [skills] = await db.execute(
+      "SELECT skill_name FROM job_skills WHERE job_id = ? ORDER BY skill_id",
+      [job_id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      job: {
+        ...jobs[0],
+        required_skills: skills.map((s) => s.skill_name),
+      },
+    });
+  } catch (err) {
+    console.log("Get Job Error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch job" });
   }
 };
 

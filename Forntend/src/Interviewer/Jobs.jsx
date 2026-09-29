@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Box,
   Typography,
@@ -35,7 +36,7 @@ export default function Jobs() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/my-jobs", {
+        const res = await fetch(`${API_URL}/api/my-jobs`, {
           credentials: "include",
         });
         const data = await res.json();
@@ -64,7 +65,7 @@ export default function Jobs() {
 
   try {
     const res = await fetch(
-      `https://interviewos.online/api/delete-job/${job_id}`,
+      `${API_URL}/api/delete-job/${job_id}`,
       {
         method: "DELETE",
         credentials: "include",

@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import * as React from "react";
 import {
   AppBar,
@@ -35,7 +36,7 @@ export default function Header({ handleDrawerToggle }) {
     }
     if (item === "Logout") {
       const logout = async () => {
-        const response = await fetch("https://interviewos.online/api/logout", {
+        const response = await fetch(`${API_URL}/api/logout`, {
           method: "GET",
           credentials: "include",
         });

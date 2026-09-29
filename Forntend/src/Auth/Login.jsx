@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 // Login.jsx
 import * as React from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
@@ -41,7 +42,7 @@ export default function Login() {
 
   try {
     const response = await fetch(
-      "https://interviewos.online/api/login",
+      `${API_URL}/api/login`,
       {
         method: "POST",
         credentials: "include",
@@ -80,7 +81,7 @@ export default function Login() {
     }
 
     if (res.role === "interviewer") {
-      navigate("/interviewer-dashboard", { replace: true });
+      navigate("/interviewer/dashboard", { replace: true });
     } else {
       navigate("/", { replace: true });
     }

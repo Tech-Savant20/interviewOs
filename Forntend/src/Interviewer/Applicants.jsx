@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Typography,
   Box,
@@ -153,7 +154,7 @@ export default function Applicants({ onMessageClick, handleSelectedUser }) {
   useEffect(() => {
     const fetchApplicants = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/applicants", {
+        const res = await fetch(`${API_URL}/api/applicants`, {
           method: "GET",
           credentials: "include",
         });

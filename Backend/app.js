@@ -18,6 +18,7 @@ import messageRoutes from "./routes/messages.js";
 import aiInterviewRoutes from "./routes/aiInterview.js";
 import interviewerDashboardRoutes from "./routes/interviewerDashboard.js";
 import codeExecutionRoutes from "./routes/codeExecution.js";
+import { LOCAL_RESUME_DIR } from "./controllers/jobs.js";
 import googleAuthRouter from './googleAuth.js';
 import requireAuth from './middleware/requireAuth.js';
 const app = express();
@@ -30,7 +31,9 @@ const allowedOrigins = [
   "https://interviewos.online",
   "http://www.interviewos.online",
   "https://www.interviewos.online",
-  "http://ec2-13-126-64-8.ap-south-1.compute.amazonaws.com"
+  "http://ec2-13-126-64-8.ap-south-1.compute.amazonaws.com",
+  // extra origins for local development, e.g. CLIENT_ORIGINS=http://localhost:5173
+  ...(process.env.CLIENT_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
 ];
 
 app.use(
@@ -50,10 +53,7 @@ const server = createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://interviewos.online",
-      "https://www.interviewos.online"
-    ],
+    origin: allowedOrigins,
     credentials: true
   }
 });
@@ -95,6 +95,10 @@ app.use("/api",interviewerDashboardRoutes)
 app.use("/api",codeExecutionRoutes)
 app.use('/auth', googleAuthRouter);
 
+if (process.env.RESUME_STORAGE === "local") {
+  app.use("/uploads/resumes", express.static(LOCAL_RESUME_DIR));
+}
+
 app.get('/dashboard', requireAuth, (req, res) => {
   res.send(`Welcome ${req.user.name} (${req.user.email})`);
 });
@@ -116,6 +120,7 @@ app.use((err, req, res, next) => {
 });
 
 // ✅ SERVER
-server.listen(5000, () => {
-  console.log("Server running on port 5000 🚀");
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} 🚀`);
 });

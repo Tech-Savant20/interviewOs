@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Box,
   TextField,
@@ -71,7 +72,7 @@ export default function AddPost() {
     }
 
     try {
-      const response = await fetch("https://interviewos.online/api/postJob", {
+      const response = await fetch(`${API_URL}/api/postJob`, {
         method: "POST",
         credentials: "include",
         headers: {

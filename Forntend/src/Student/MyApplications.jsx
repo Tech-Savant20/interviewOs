@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import { Box, Typography, Chip, Avatar } from "@mui/material";
 import { useEffect, useState } from "react";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
@@ -18,7 +19,7 @@ export default function MyApplications() {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/my-applications", {
+        const res = await fetch(`${API_URL}/api/my-applications`, {
           method: "GET",
           credentials: "include",
         });

@@ -1,3 +1,4 @@
+import { API_URL } from "./config.js";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
@@ -15,7 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const res = await fetch("https://interviewos.online/api/me", {
+      const res = await fetch(`${API_URL}/api/me`, {
         method: "GET",
         credentials: "include", // IMPORTANT for cookies
       });

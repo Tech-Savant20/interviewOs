@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 // Signup.jsx
 import { useState } from 'react';
 import { Eye, EyeOff, Users } from 'lucide-react';
@@ -32,7 +33,7 @@ export default function Signup() {
     setSuccess("");
 
     try {
-      const response = await fetch("https://interviewos.online/api/signup", {
+      const response = await fetch(`${API_URL}/api/signup`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -201,7 +202,7 @@ export default function Signup() {
           </div>
 
           {/* Google OAuth */}
-          <a className="google-btn" href="https://interviewos.online/auth/google">
+          <a className="google-btn" href={`${API_URL}/auth/google`}>
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
               alt="Google"

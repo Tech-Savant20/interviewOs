@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import React, { useState } from "react";
 import {
   Box,
@@ -64,7 +65,7 @@ const OTPVerification = () => {
       console.log("Entered OTP:", enteredOtp);
 
       const response = await fetch(
-        "https://interviewos.online/api/verify-otp",
+        `${API_URL}/api/verify-otp`,
         {
           method: "POST",
           headers: {

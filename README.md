@@ -74,42 +74,55 @@ Built for 100+ users across candidate and interviewer roles, with production dep
 
 ### Prerequisites
 - Node.js (v18+)
-- MySQL
-- Redis
-- OpenAI API key
+- Docker Desktop (runs MySQL and Redis locally)
 
-### Installation
+### Run locally
 
 ```bash
-# Clone the repository
-git clone https://github.com/rahulrao2-0/interviewos.git
-cd interviewos
+# 1. Start MySQL + Redis (schema and demo data load automatically on first start)
+docker compose up -d
 
-# Install dependencies
+# 2. Backend — http://localhost:5000
+cd Backend
+cp .env.example .env        # works as-is; add GROQ_API_KEY for the AI mock interview
 npm install
+npm run dev
 
-# Set up environment variables
-cp .env.example .env
-# Fill in your DB, Redis, JWT secret, and OpenAI API credentials
-
-# Run database migrations
-npm run migrate
-
-# Start the development server
+# 3. Frontend — http://localhost:5173 (in a second terminal)
+cd Forntend
+npm install
 npm run dev
 ```
 
+Log in with a demo account (password `password123`):
+
+| Username | Role |
+|---|---|
+| `demo_interviewer` | Interviewer / recruiter |
+| `demo_student` | Candidate |
+
+Notes:
+- In development the frontend proxies `/api`, `/auth` and `/socket.io` to the backend (see `Forntend/vite.config.js`), so no CORS or cookie setup is needed. Production builds still call `https://interviewos.online`.
+- Without `BREVO_API_KEY`, emails are not sent. The signup OTP is printed in the backend console instead.
+- `RESUME_STORAGE=local` saves uploaded resumes to `Backend/uploads/` instead of S3.
+- Reset the database with `docker compose down -v && docker compose up -d`.
+- The schema is in `Backend/db/schema.sql` and the demo data in `Backend/db/seed.sql`.
+
 ### Environment Variables
 
+See `Backend/.env.example` for the full list. The main ones:
+
 ```env
-DATABASE_URL=
-REDIS_URL=
+DB_HOST= DB_PORT= DB_USER= DB_PASSWORD= DB_NAME=
+DB_SSL=false               # omit in production (uses the AWS RDS CA bundle)
+REDIS_HOST= REDIS_PORT=
 JWT_SECRET=
-OPENAI_API_KEY=
-EMAIL_SERVICE_API_KEY=
-AWS_S3_BUCKET=
-JUDGE0_API_KEY=        # RapidAPI key for Judge0 CE (code execution)
-JUDGE0_API_URL=        # optional, defaults to https://judge0-ce.p.rapidapi.com
+GROQ_API_KEY=              # AI mock interview questions + evaluation
+BREVO_API_KEY=             # transactional email
+JUDGE0_API_KEY=            # RapidAPI key for Judge0 CE (code execution)
+JUDGE0_API_URL=            # optional, defaults to https://judge0-ce.p.rapidapi.com
+CLIENT_ORIGINS=            # extra CORS origins, comma separated
+CLIENT_URL=                # frontend URL used in meeting links and emails
 ```
 
 ---

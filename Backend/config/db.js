@@ -20,9 +20,10 @@ const db = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
   connectTimeout: 10000,
-  ssl: {
-    ca: fs.readFileSync(path.join(__dirname, "..", "global-bundle.pem")),
-  },
+  // AWS RDS needs its CA bundle; a local MySQL runs without SSL (DB_SSL=false)
+  ssl: process.env.DB_SSL === "false"
+    ? undefined
+    : { ca: fs.readFileSync(path.join(__dirname, "..", "global-bundle.pem")) },
 });
 
 db.on("error", (err) => {

@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -37,7 +38,7 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/profile", {
+        const res = await fetch(`${API_URL}/api/profile`, {
           method: "GET",
           credentials: "include",
         });

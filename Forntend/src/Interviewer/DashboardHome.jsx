@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import {
   Box,
   Typography,
@@ -37,7 +38,7 @@ export default function DashboardHome({ setActiveView }) {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch("https://interviewos.online/api/dashboard", {
+        const res = await fetch(`${API_URL}/api/dashboard`, {
           method: "GET",
           credentials: "include",
         });

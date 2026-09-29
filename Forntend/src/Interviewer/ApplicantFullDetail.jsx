@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -33,7 +34,7 @@ export default function ApplicantFullDetail() {
     const fetchApplicantDetail = async () => {
       try {
         const response = await fetch(
-          `https://interviewos.online/api/applicantFullDetail/${applicantId}`,
+          `${API_URL}/api/applicantFullDetail/${applicantId}`,
           {
             method: "GET",
             credentials: "include",
@@ -57,7 +58,7 @@ export default function ApplicantFullDetail() {
 
   const downloadResume = async () => {
   const res = await fetch(
-    `https://interviewos.online/api/resume/${applicantDetail.app_id}`,
+    `${API_URL}/api/resume/${applicantDetail.app_id}`,
     {
       credentials: "include",
     }
@@ -73,7 +74,7 @@ export default function ApplicantFullDetail() {
   const handleSelectionUpdate = async (status) => {
     try {
       const response = await fetch(
-        `https://interviewos.online/api/updateSelectionStatus`,
+        `${API_URL}/api/updateSelectionStatus`,
         {
           method: "PUT",
 
@@ -109,7 +110,7 @@ export default function ApplicantFullDetail() {
         return alert("Please select interview date and time");
       }
 
-      const response = await fetch(`https://interviewos.online/api/schedule-interview`, {
+      const response = await fetch(`${API_URL}/api/schedule-interview`, {
         method: "POST",
         credentials: "include",
         headers: {

@@ -3,6 +3,7 @@ import ExpressError from "../ExpressError.js";
 import { createToken , verfiyToken } from "../utils/jwt.js";
 import redis from "../Redis.js";
 import sendEmail from "../utils/SendEmail.js";
+import { authCookieOptions } from "../utils/cookieOptions.js";
 
 import bcrypt from "bcryptjs";
 
@@ -156,9 +157,7 @@ export const Login = async (req, res, next) => {
 
     // Cookie
     res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      ...authCookieOptions(),
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
@@ -185,11 +184,7 @@ export const Login = async (req, res, next) => {
 
 export const logout = (req, res) => {
   console.log("Logout api hit")
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: true, // true in production with HTTPS
-    sameSite: "none",
-  });
+  res.clearCookie("token", authCookieOptions());
 
   res.status(200).json({
     success: true,
@@ -264,9 +259,7 @@ export const verifyOtp = async (req, res, next) => {
 
     // Save cookie
     res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      ...authCookieOptions(),
       maxAge: 24 * 60 * 60 * 1000,
     });
     

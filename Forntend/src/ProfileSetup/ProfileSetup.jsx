@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import { useState, useEffect } from "react";
 import "./ProfileSetup.css";
 import {
@@ -120,12 +121,12 @@ export default function ProfileSetup() {
       if (role === "student") {
 
         url =
-          "https://interviewos.online/api/student-profile-setup";
+          `${API_URL}/api/student-profile-setup`;
 
       } else {
 
         url =
-          "https://interviewos.online/api/interviewer-profile-setup";
+          `${API_URL}/api/interviewer-profile-setup`;
       }
 
       const response = await fetch(url, {

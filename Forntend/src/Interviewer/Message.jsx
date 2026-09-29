@@ -1,3 +1,4 @@
+import { API_URL } from "../config.js";
 import React, { use, useEffect, useRef } from "react";
 import socket from "../socket.js";
 import {
@@ -30,7 +31,7 @@ export default function Message({ selectedApplicant }) {
 
   const getChatMessages = async (userId) => {
     try {
-      const response = await fetch(`https://interviewos.online/api/chat/${userId}`, {
+      const response = await fetch(`${API_URL}/api/chat/${userId}`, {
         method: "GET",
         credentials: "include",
       });
@@ -70,7 +71,7 @@ export default function Message({ selectedApplicant }) {
   // ✅ FIXED: handle all possible key names from /api/me
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch("https://interviewos.online/api/me", { credentials: "include" });
+      const response = await fetch(`${API_URL}/api/me`, { credentials: "include" });
       const data = await response.json();
 
       console.log("FULL /api/me response:", data); // remove after confirming
@@ -87,7 +88,7 @@ export default function Message({ selectedApplicant }) {
   // ✅ Fetch users
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch("https://interviewos.online/api/interviewer-inbox-users", { credentials: "include" });
+      const response = await fetch(`${API_URL}/api/interviewer-inbox-users`, { credentials: "include" });
       const res = await response.json();
       if (res.success) {
         setUsers(res.users);
@@ -147,7 +148,7 @@ export default function Message({ selectedApplicant }) {
     if (!input.trim() || !selectedUser || !myId) return;
 
     try {
-      fetch("https://interviewos.online/api/save-message", {
+      fetch(`${API_URL}/api/save-message`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
