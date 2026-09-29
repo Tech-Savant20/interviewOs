@@ -17,6 +17,7 @@ import { chatSocket } from "./scokets/chatSocket.js";
 import messageRoutes from "./routes/messages.js";
 import aiInterviewRoutes from "./routes/aiInterview.js";
 import interviewerDashboardRoutes from "./routes/interviewerDashboard.js";
+import codeExecutionRoutes from "./routes/codeExecution.js";
 import googleAuthRouter from './googleAuth.js';
 import requireAuth from './middleware/requireAuth.js';
 const app = express();
@@ -91,6 +92,7 @@ app.use("/api",jobRoutes)
 app.use("/api",messageRoutes)
 app.use("/api",aiInterviewRoutes)
 app.use("/api",interviewerDashboardRoutes)
+app.use("/api",codeExecutionRoutes)
 app.use('/auth', googleAuthRouter);
 
 app.get('/dashboard', requireAuth, (req, res) => {

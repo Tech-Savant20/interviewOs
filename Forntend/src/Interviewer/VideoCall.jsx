@@ -6,7 +6,54 @@ import { useAuth } from "../AuthContext.jsx";
 
 const socket = io("https://interviewos.online", { withCredentials: true });
 
-const LANGUAGES = ["javascript", "python", "java", "cpp", "typescript", "go"];
+const LANGUAGES = [
+  { id: "javascript", label: "JavaScript" },
+  { id: "typescript", label: "TypeScript" },
+  { id: "python", label: "Python" },
+  { id: "java", label: "Java" },
+  { id: "cpp", label: "C++" },
+  { id: "c", label: "C" },
+  { id: "csharp", label: "C#" },
+  { id: "go", label: "Go" },
+  { id: "rust", label: "Rust" },
+  { id: "kotlin", label: "Kotlin" },
+  { id: "ruby", label: "Ruby" },
+  { id: "php", label: "PHP" },
+];
+
+const STARTER_CODE = {
+  javascript: 'console.log("Hello, InterviewOS!");\n',
+  typescript: 'const greeting: string = "Hello, InterviewOS!";\nconsole.log(greeting);\n',
+  python: 'print("Hello, InterviewOS!")\n',
+  java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, InterviewOS!");\n    }\n}\n',
+  cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, InterviewOS!" << endl;\n    return 0;\n}\n',
+  c: '#include <stdio.h>\n\nint main() {\n    printf("Hello, InterviewOS!\\n");\n    return 0;\n}\n',
+  csharp: 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, InterviewOS!");\n    }\n}\n',
+  go: 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello, InterviewOS!")\n}\n',
+  rust: 'fn main() {\n    println!("Hello, InterviewOS!");\n}\n',
+  kotlin: 'fun main() {\n    println("Hello, InterviewOS!")\n}\n',
+  ruby: 'puts "Hello, InterviewOS!"\n',
+  php: '<?php\necho "Hello, InterviewOS!\\n";\n',
+};
+
+// Only swap in a new template if the editor still holds an untouched template
+const isStarterCode = (code) =>
+  !code.trim() || code === "// Start coding here...\n" || Object.values(STARTER_CODE).includes(code);
+
+function formatRunResult(data) {
+  const parts = [];
+  // Judge0 status 6 = Compilation Error; otherwise compile output is just toolchain warnings
+  if (data.statusId === 6) parts.push(`Compilation error:\n${data.compileOutput}`);
+  if (data.stdout) parts.push(data.stdout);
+  if (data.stderr) parts.push(data.stderr);
+  if (data.message) parts.push(data.message);
+  if (!parts.length) parts.push("(no output)");
+
+  const stats = [data.status];
+  if (data.time) stats.push(`${data.time}s`);
+  if (data.memory) stats.push(`${data.memory} KB`);
+  return `${parts.join("\n").trimEnd()}\n\n— ${stats.join(" · ")}`;
+}
 
 function useTimer() {
   const [seconds, setSeconds] = useState(0);
@@ -20,9 +67,10 @@ function useTimer() {
 }
 
 export default function VideoCall() {
-  const [code, setCode] = useState("// Start coding here...\n");
+  const [code, setCode] = useState(STARTER_CODE.javascript);
   const [language, setLanguage] = useState("javascript");
   const [output, setOutput] = useState("");
+  const [running, setRunning] = useState(false);
   const [outputVisible, setOutputVisible] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
@@ -76,9 +124,31 @@ export default function VideoCall() {
     socket.emit("code-change", { roomId, code: value });
   };
 
+  const handleLanguageChange = (newLanguage) => {
+    const newCode = isStarterCode(code) ? STARTER_CODE[newLanguage] : code;
+    setLanguage(newLanguage);
+    setCode(newCode);
+    socket.emit("language-change", { roomId, language: newLanguage, code: newCode });
+  };
+
   useEffect(() => {
+    const handleLanguageUpdate = ({ language: newLanguage, code: newCode }) => {
+      setLanguage(newLanguage);
+      if (typeof newCode === "string") setCode(newCode);
+    };
+    const handleCodeOutput = (newOutput) => {
+      setOutput(newOutput);
+      setOutputVisible(true);
+    };
+
     socket.on("code-update", (newCode) => setCode(newCode));
-    return () => socket.off("code-update");
+    socket.on("language-update", handleLanguageUpdate);
+    socket.on("code-output", handleCodeOutput);
+    return () => {
+      socket.off("code-update");
+      socket.off("language-update", handleLanguageUpdate);
+      socket.off("code-output", handleCodeOutput);
+    };
   }, []);
 
   useEffect(() => {
@@ -147,9 +217,29 @@ export default function VideoCall() {
     if (track) { track.enabled = !track.enabled; setCameraOn(track.enabled); }
   };
 
-  const handleRunCode = () => {
-    setOutput(`Running ${language}...\n> [Execution output would appear here]`);
+  const handleRunCode = async () => {
+    if (running) return;
+    setRunning(true);
+    setOutput(`Running ${language}...`);
     setOutputVisible(true);
+
+    let result;
+    try {
+      const res = await fetch("https://interviewos.online/api/run-code", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language, code }),
+      });
+      const data = await res.json();
+      result = data.success ? formatRunResult(data) : `Error: ${data.message || "Failed to run code"}`;
+    } catch (err) {
+      console.error(err);
+      result = "Error: Could not reach the code execution service";
+    }
+
+    setOutput(result);
+    socket.emit("code-output", { roomId, output: result });
+    setRunning(false);
   };
 
   const handleSend = async () => {
@@ -211,7 +301,13 @@ export default function VideoCall() {
             <ControlBtn onClick={handleToggleMic} active={micOn} icon={micOn ? "🎙️" : "🔇"} label={micOn ? "Mute" : "Unmute"} />
             <ControlBtn onClick={handleToggleCamera} active={cameraOn} icon={cameraOn ? "📷" : "🚫"} label={cameraOn ? "Cam Off" : "Cam On"} />
             <ControlBtn icon="🖥️" label="Share" onClick={() => {}} active={true} />
-            <button style={styles.runBtnControl} onClick={handleRunCode}>▶ Run</button>
+            <button
+              style={{ ...styles.runBtnControl, opacity: running ? 0.6 : 1 }}
+              onClick={handleRunCode}
+              disabled={running}
+            >
+              {running ? "Running…" : "▶ Run"}
+            </button>
             <div style={styles.flexGrow} />
             <button style={styles.endBtn} onClick={handleEndCall}>
               <span style={{ fontSize: 16 }}>📵</span> End Call
@@ -227,14 +323,20 @@ export default function VideoCall() {
             <div style={styles.toolbarSpacer} />
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => handleLanguageChange(e.target.value)}
               style={styles.langSelect}
             >
               {LANGUAGES.map((l) => (
-                <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>
+                <option key={l.id} value={l.id}>{l.label}</option>
               ))}
             </select>
-            <button style={styles.runBtnToolbar} onClick={handleRunCode}>▶ Run Code</button>
+            <button
+              style={{ ...styles.runBtnToolbar, opacity: running ? 0.6 : 1 }}
+              onClick={handleRunCode}
+              disabled={running}
+            >
+              {running ? "Running…" : "▶ Run Code"}
+            </button>
           </div>
 
           {/* Monaco Editor */}

@@ -108,6 +108,8 @@ JWT_SECRET=
 OPENAI_API_KEY=
 EMAIL_SERVICE_API_KEY=
 AWS_S3_BUCKET=
+JUDGE0_API_KEY=        # RapidAPI key for Judge0 CE (code execution)
+JUDGE0_API_URL=        # optional, defaults to https://judge0-ce.p.rapidapi.com
 ```
 
 ---

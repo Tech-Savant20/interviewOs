@@ -49,6 +49,16 @@ export const chatSocket = (io) => {
     socket.to(roomId).emit("code-update", code);
 
      });
+
+    socket.on("language-change", ({ roomId, language, code }) => {
+      if (!roomId || !language) return;
+      socket.to(roomId).emit("language-update", { language, code });
+    });
+
+    socket.on("code-output", ({ roomId, output }) => {
+      if (!roomId || typeof output !== "string") return;
+      socket.to(roomId).emit("code-output", output);
+    });
     socket.on("join_video_room", ({ roomId }) => {
       if (!roomId) return;
 
