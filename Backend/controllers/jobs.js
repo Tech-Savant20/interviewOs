@@ -185,7 +185,7 @@ export const postJob = async (req, res, next) => {
       !required_skills ||
       required_skills.length === 0
     ) {
-      return next(new expressError("All required fields are required", 400));
+      return next(new ExpressError("All required fields are required", 400));
     }
 
     /* ─────────────────────────────
@@ -194,7 +194,7 @@ export const postJob = async (req, res, next) => {
     const allowedJobTypes = ["Full-time", "Part-time", "Internship", "Contract"];
 
     if (!allowedJobTypes.includes(job_type)) {
-      return next(new expressError("Invalid job type", 400));
+      return next(new ExpressError("Invalid job type", 400));
     }
 
     /* ─────────────────────────────
@@ -202,7 +202,7 @@ export const postJob = async (req, res, next) => {
     ───────────────────────────── */
     if (min_salary && max_salary && Number(min_salary) > Number(max_salary)) {
       return next(
-        new expressError("Minimum salary cannot be greater than maximum salary", 400)
+        new ExpressError("Minimum salary cannot be greater than maximum salary", 400)
       );
     }
 
@@ -226,7 +226,7 @@ export const postJob = async (req, res, next) => {
     }
 
     if (skillsArray.length === 0) {
-      return next(new expressError("At least one required skill must be provided", 400));
+      return next(new ExpressError("At least one required skill must be provided", 400));
     }
 
     /* ─────────────────────────────
@@ -524,7 +524,7 @@ export const postJob = async (req, res, next) => {
 
   } catch (err) {
     console.log("Post Job Error:", err);
-    next(new expressError("Failed to post job", 500));
+    next(new ExpressError("Failed to post job", 500));
   }
 };
 
@@ -595,7 +595,7 @@ export const myJobs = async (req, res, next) => {
 
   } catch (err) {
     console.log("My Jobs Error:", err);
-    next(new expressError("Failed to fetch jobs", 500));
+    next(new ExpressError("Failed to fetch jobs", 500));
   }
 };
 

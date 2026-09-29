@@ -138,7 +138,7 @@ export const getDashboard = async (req, res, next) => {
 
   } catch (err) {
     console.error("Dashboard Error:", err);
-    next(new expressError("Failed to load dashboard", 500));
+    next(new ExpressError("Failed to load dashboard", 500));
   }
 };
 

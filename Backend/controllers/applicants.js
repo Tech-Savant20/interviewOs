@@ -532,7 +532,7 @@ export const getProfile = async (req, res, next) => {
     );
 
     if (profileRows.length === 0) {
-      return next(new expressError("Profile not found", 404));
+      return next(new ExpressError("Profile not found", 404));
     }
 
     /* ── Fetch Skills Separately ── */
@@ -551,7 +551,7 @@ export const getProfile = async (req, res, next) => {
 
   } catch (err) {
     console.log("Get Profile Error:", err);
-    next(new expressError("Failed to fetch profile", 500));
+    next(new ExpressError("Failed to fetch profile", 500));
   }
 };
 

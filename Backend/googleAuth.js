@@ -1,9 +1,49 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
+import db from './config/db.js';
+import { createToken } from './utils/jwt.js';
+import { authCookieOptions } from './utils/cookieOptions.js';
 
 const router = express.Router();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client();
+
+const clientUrl = () => process.env.CLIENT_URL || 'https://interviewos.online';
+
+// Turn "Jane.Doe+x@gmail.com" into a free username like "jane_doe_x" / "jane_doe_x2"
+const uniqueUsername = async (email) => {
+  const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 40) || 'user';
+  for (let i = 0; i < 50; i++) {
+    const candidate = i === 0 ? base : `${base}${i + 1}`;
+    const [rows] = await db.execute('SELECT user_id FROM users WHERE username = ?', [candidate]);
+    if (rows.length === 0) return candidate;
+  }
+  return `${base}_${crypto.randomBytes(3).toString('hex')}`;
+};
+
+// Existing account with the same email → log into it; otherwise create a verified candidate account
+export const findOrCreateGoogleUser = async ({ email }) => {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const [existing] = await db.execute(
+    'SELECT user_id, role, profileExist FROM users WHERE email = ?',
+    [normalizedEmail]
+  );
+  if (existing.length > 0) return existing[0];
+
+  const username = await uniqueUsername(normalizedEmail);
+  // Google users never type a password; store an unusable random one
+  const password = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+
+  const [result] = await db.execute(
+    `INSERT INTO users (username, email, password, role, verify)
+     VALUES (?, ?, ?, ?, ?)`,
+    [username, normalizedEmail, password, 'user', true]
+  );
+
+  return { user_id: result.insertId, role: 'user', profileExist: 0 };
+};
 
 // ---- Step 1: Redirect user to Google's consent screen ----
 router.get('/google', (req, res) => {
@@ -12,8 +52,7 @@ router.get('/google', (req, res) => {
     redirect_uri: process.env.GOOGLE_REDIRECT_URI,
     response_type: 'code',
     scope: 'openid email profile',
-    access_type: 'offline',
-    prompt: 'consent',
+    prompt: 'select_account',
   });
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 });
@@ -21,7 +60,7 @@ router.get('/google', (req, res) => {
 // ---- Step 2: Handle Google's callback ----
 router.get('/google/callback', async (req, res) => {
   const { code } = req.query;
-  if (!code) return res.status(400).send('Missing authorization code');
+  if (!code) return res.redirect(`${clientUrl()}/login?error=oauth_failed`);
 
   try {
     // Exchange authorization code for tokens
@@ -48,45 +87,29 @@ router.get('/google/callback', async (req, res) => {
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    // payload: { sub, email, email_verified, name, picture, ... }
 
-    // ---- Find or create user in your DB ----
-    // Replace this with your real DB lookup/creation logic, e.g.:
-    // let user = await User.findOne({ googleId: payload.sub });
-    // if (!user) user = await User.create({ googleId: payload.sub, email: payload.email, name: payload.name });
-    const user = {
-      id: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture,
-    };
+    if (!payload.email || !payload.email_verified) {
+      throw new Error('Google account email is not verified');
+    }
 
-    // ---- Create your own app JWT ----
-    const appToken = jwt.sign(
-      { sub: user.id, email: user.email, name: user.name },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const user = await findOrCreateGoogleUser({ email: payload.email });
 
-    // ---- Set httpOnly cookie ----
-    res.cookie('token', appToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    // Same token + cookie as the username/password login
+    const token = createToken({ id: user.user_id, role: user.role });
+    res.cookie('token', token, {
+      ...authCookieOptions(),
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    res.redirect(process.env.CLIENT_SUCCESS_REDIRECT || '/dashboard');
+    let next = '/';
+    if (!user.profileExist) next = '/profileSetup';
+    else if (user.role === 'interviewer') next = '/interviewer/dashboard';
+
+    res.redirect(`${clientUrl()}${next}`);
   } catch (err) {
     console.error('Google OAuth error:', err.message);
-    res.redirect(process.env.CLIENT_FAILURE_REDIRECT || '/login?error=oauth_failed');
+    res.redirect(`${clientUrl()}/login?error=oauth_failed`);
   }
-});
-
-// ---- Logout ----
-router.get('/logout', (req, res) => {
-  res.clearCookie('token');
-  res.redirect(process.env.CLIENT_FAILURE_REDIRECT || '/login');
 });
 
 export default router;

@@ -14,7 +14,11 @@ export default function Login() {
     password: '',
   });
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
+  const [error, setError] = React.useState(() =>
+    new URLSearchParams(window.location.search).get('error') === 'oauth_failed'
+      ? 'Google sign-in failed. Please try again.'
+      : ''
+  );
   const { checkAuth } = useAuth();
 
   const handleChange = (e) => {
@@ -214,7 +218,7 @@ export default function Login() {
             </div>
 
             {/* Google OAuth */}
-            <a className="google-btn" href="/auth/google">
+            <a className="google-btn" href={`${API_URL}/auth/google`}>
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
                 alt="Google"

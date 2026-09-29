@@ -1,7 +1,9 @@
 class ExpressError extends Error{
-    constructor(status,message){
+    // Accepts both (status, message) and (message, status) — both orders are used in the controllers
+    constructor(first, second){
+        const [status, message] = typeof first === "number" ? [first, second] : [second, first];
         super(message);
-        this.error = this.error;
+        this.statusCode = status || 500;
     }
 }
 

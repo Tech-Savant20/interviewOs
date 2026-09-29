@@ -20,7 +20,6 @@ import interviewerDashboardRoutes from "./routes/interviewerDashboard.js";
 import codeExecutionRoutes from "./routes/codeExecution.js";
 import { LOCAL_RESUME_DIR } from "./controllers/jobs.js";
 import googleAuthRouter from './googleAuth.js';
-import requireAuth from './middleware/requireAuth.js';
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -99,9 +98,6 @@ if (process.env.RESUME_STORAGE === "local") {
   app.use("/uploads/resumes", express.static(LOCAL_RESUME_DIR));
 }
 
-app.get('/dashboard', requireAuth, (req, res) => {
-  res.send(`Welcome ${req.user.name} (${req.user.email})`);
-});
 // ✅ SOCKET
 chatSocket(io);
 export { io };
@@ -114,7 +110,7 @@ app.use((err, req, res, next) => {
   const { statusCode = 500, message = "Something went wrong" } = err;
 
   res.status(statusCode).json({
-    success: statusCode,
+    success: false,
     message: message
   });
 });

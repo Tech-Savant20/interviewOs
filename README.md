@@ -1,6 +1,6 @@
 # InterviewOS 🎯
 
-> A full-stack recruitment and AI-powered technical interview platform enabling live video interviews, real-time collaborative coding, and automated candidate evaluation.
+> A full-stack recruitment and technical interview platform with live video interviews, a shared coding editor with real code execution, and an AI mock interviewer.
 
 **Live:** [interviewos.online](https://interviewos.online)
 
@@ -8,21 +8,23 @@
 
 ## 📖 Overview
 
-InterviewOS streamlines the technical hiring pipeline for interviewers and candidates — combining peer-to-peer video interviews, a collaborative live coding environment, multi-language code execution, and AI-driven interview prep and evaluation into a single platform.
-
-Built for 100+ users across candidate and interviewer roles, with production deployment on AWS EC2.
+InterviewOS brings the technical hiring pipeline into one place. Recruiters post jobs, review applicants and run live interviews. Candidates build a profile, apply for jobs, chat with recruiters and practise with an AI interviewer. The interview room combines a peer-to-peer video call, a collaborative code editor and multi-language code execution.
 
 ---
 
 ## ✨ Features
 
-- **JWT Authentication + OTP Email Verification** — secure sign-up/login with Redis-backed session management
-- **Peer-to-Peer Video Interviews** — WebRTC + Socket.IO powered video rooms with sub-200ms audio/video latency
-- **Live Collaborative Code Editor** — Monaco Editor with real-time bi-directional sync over Socket.IO; interviewers and candidates co-edit with zero lag
-- **Multi-Language Code Execution Engine** — isolated code execution for 10+ languages (JavaScript, Python, Java, C++, TypeScript, Go, and more), results delivered in under 2 seconds
-- **AI-Powered Interview Prep** — real-time audio transcription with OpenAI-driven, role- and difficulty-tailored question generation
-- **Automated Candidate Evaluation** — AI evaluator scores responses on accuracy, clarity, and relevance; generates performance reports in under 10 seconds
-- **Recruiter Workflow Tools** — scheduling, application tracking, and messaging in one dashboard
+- **Authentication** — username/password login with bcrypt hashing, 4-digit email OTP verification (OTP and pending signup held in Redis for 10 minutes), JWT in an httpOnly cookie, and Google sign-in
+- **Two roles** — candidates (`user`) and interviewers/recruiters (`interviewer`), each with their own profile setup
+- **Jobs** — post, edit and delete jobs; browse with pagination and filter by skills, job type, experience and salary band
+- **Skill-match emails** — when a job is posted, candidates whose skills overlap are emailed through a BullMQ queue and a background worker
+- **Applications** — apply with a resume (stored in AWS S3, opened by recruiters through a 5-minute signed URL); recruiters shortlist, select or reject, and the candidate is emailed
+- **Recruiter dashboard** — total jobs, applicants, shortlisted and rejected counts, recent jobs and applicants (cached in Redis)
+- **Interview scheduling** — creates a unique meeting room, emails the candidate and notifies them in chat
+- **Real-time chat** — Socket.IO messaging between recruiters and candidates, persisted in MySQL
+- **Live interview room** — WebRTC peer-to-peer video with mute, camera and screen share, plus a Monaco code editor whose code, language and run output stay in sync for both participants
+- **Code execution** — 12 languages (JavaScript, TypeScript, Python, Java, C++, C, C#, Go, Rust, Kotlin, Ruby, PHP) run in a sandbox through Judge0, with per-user rate limiting
+- **AI mock interview** — Groq's Llama 3.3 70B generates questions for a chosen topic and difficulty, then scores each answer from 0–10 with feedback; answers can be spoken (browser speech recognition) and questions are read aloud
 
 ---
 
@@ -30,16 +32,18 @@ Built for 100+ users across candidate and interviewer roles, with production dep
 
 | Layer | Technology |
 |---|---|
-| Frontend | React.js |
-| Backend | Node.js, Express.js |
-| Database | MySQL |
-| Caching / Sessions | Redis |
+| Frontend | React 19, Vite, Material UI, React Router |
+| Backend | Node.js, Express 5 |
+| Database | MySQL (AWS RDS in production) |
+| Caching / Queues | Redis, BullMQ |
 | Real-time Communication | Socket.IO, WebRTC |
 | Code Editor | Monaco Editor |
-| AI Integration | OpenAI API |
-| Infrastructure | AWS EC2, AWS S3, Nginx (reverse proxy + SSL termination) |
+| Code Execution | Judge0 CE |
+| AI Integration | Groq API (Llama 3.3 70B) |
+| Email | Brevo |
+| Infrastructure | AWS EC2, AWS RDS, AWS S3, Nginx (reverse proxy + SSL), PM2 |
 | CI/CD | GitHub Actions |
-| Auth | JWT, OTP Email Verification |
+| Auth | JWT, bcrypt, OTP email verification, Google OAuth 2.0 |
 
 ---
 
@@ -49,24 +53,19 @@ Built for 100+ users across candidate and interviewer roles, with production dep
 
 
 **Key design decisions:**
-- **Redis for session management** — reduces DB load and enables fast OTP/session lookups
-- **WebRTC for peer-to-peer video** — avoids routing media through the server, keeping latency low and infra cost down
-- **Socket.IO for code sync** — enables low-latency bi-directional updates for the collaborative editor
-- **Isolated execution engine** — sandboxes untrusted code submissions per language runtime
+- **Redis for OTPs and caching** — short-lived OTPs and pending signups expire automatically, and hot reads (job list, dashboard) skip MySQL
+- **Background email queue** — BullMQ moves skill-match emails out of the request, so posting a job stays fast
+- **WebRTC for peer-to-peer video** — media flows directly between participants; the server only relays signalling over Socket.IO
+- **Socket.IO for code sync** — low-latency bi-directional updates for the collaborative editor
+- **Sandboxed execution** — untrusted code runs in Judge0's isolated containers, never on the application server
 
 ---
 
-## 📊 Performance & Impact
+## ☁️ Deployment
 
-- Sub-200ms audio/video latency in interview rooms
-- Zero-lag real-time code synchronization between interviewer and candidate
-- Code execution results delivered in under 2 seconds per submission
-- AI performance reports generated in under 10 seconds
-- 45% improvement in average API response time; 30% reduction in MySQL query load via Redis caching and query optimization
-- Deployment time reduced from 20 minutes to 3 minutes via GitHub Actions CI/CD automation
-- 99.9% uptime on AWS EC2 with Nginx reverse proxy and SSL termination
-- 50% reduction in mock interview preparation time via AI-generated question sets
-- 35% reduction in recruiter coordination overhead through streamlined scheduling and messaging
+- The React build and the Express API run on one **AWS EC2** instance (ap-south-1) behind **Nginx**, which serves the frontend, proxies `/api` and Socket.IO to the backend, and terminates SSL.
+- The backend runs under **PM2**. **MySQL** is on **AWS RDS** (SSL), **Redis** runs on the EC2 instance, and resumes are stored in **S3**.
+- **GitHub Actions** deploy on every push to `main`: the frontend is built and copied to the server over SSH, and a self-hosted runner on the EC2 instance installs backend dependencies and restarts PM2.
 
 ---
 
@@ -130,8 +129,11 @@ CLIENT_URL=                # frontend URL used in meeting links and emails
 ## 🧪 Testing
 
 ```bash
+cd Backend
 npm test
 ```
+
+Unit tests (Node's built-in test runner) cover the code-execution endpoint (Judge0 mocked), rate limiting, error handling, auth cookies and JWTs.
 
 ---
 

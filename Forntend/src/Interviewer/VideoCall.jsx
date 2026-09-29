@@ -75,6 +75,7 @@ export default function VideoCall() {
   const [outputVisible, setOutputVisible] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
+  const [sharing, setSharing] = useState(false);
   const [connected, setConnected] = useState(false);
   const [openInbox, setOpenInbox] = useState(false);
   const [inboxUsers, setInboxUsers] = useState([]);
@@ -88,9 +89,7 @@ export default function VideoCall() {
   const remoteVideoRef = useRef(null);
   const localStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
-  const userRef = useRef(null);
-
-  if (user?.user?.role === "interviewer") userRef.current = true;
+  const screenTrackRef = useRef(null);
 
   const peerConfig = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -116,8 +115,44 @@ export default function VideoCall() {
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
     };
     localStreamRef.current?.getTracks().forEach((t) => pc.addTrack(t, localStreamRef.current));
+    // Someone joined mid-share: send them the screen instead of the camera
+    if (screenTrackRef.current) videoSender(pc)?.replaceTrack(screenTrackRef.current);
     peerConnectionRef.current = pc;
     return pc;
+  };
+
+  const videoSender = (pc) => pc?.getSenders().find((s) => s.track?.kind === "video");
+
+  const stopScreenShare = () => {
+    const screenTrack = screenTrackRef.current;
+    if (!screenTrack) return;
+    screenTrackRef.current = null;
+    screenTrack.stop();
+
+    const cameraTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+    videoSender(peerConnectionRef.current)?.replaceTrack(cameraTrack);
+    if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+    setSharing(false);
+  };
+
+  const handleToggleScreenShare = async () => {
+    if (screenTrackRef.current) {
+      stopScreenShare();
+      return;
+    }
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      screenTrackRef.current = screenTrack;
+      // Swap the outgoing camera track for the screen without renegotiating the call
+      videoSender(peerConnectionRef.current)?.replaceTrack(screenTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = screenStream;
+      // Browser's own "Stop sharing" button
+      screenTrack.onended = stopScreenShare;
+      setSharing(true);
+    } catch (err) {
+      console.error("Screen share cancelled or failed:", err);
+    }
   };
 
   const handleCodeChange = (value) => {
@@ -184,25 +219,35 @@ export default function VideoCall() {
         await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
     };
 
+    const handleUserLeft = () => {
+      peerConnectionRef.current?.close();
+      peerConnectionRef.current = null;
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    };
+
     init();
     socket.on("user_joined_video", handleUserJoined);
     socket.on("video_offer", handleOffer);
     socket.on("video_answer", handleAnswer);
     socket.on("ice_candidate", handleIceCandidate);
+    socket.on("user_left_video", handleUserLeft);
 
     return () => {
       socket.off("user_joined_video", handleUserJoined);
       socket.off("video_offer", handleOffer);
       socket.off("video_answer", handleAnswer);
       socket.off("ice_candidate", handleIceCandidate);
+      socket.off("user_left_video", handleUserLeft);
       socket.emit("leave_video_room", { roomId });
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      screenTrackRef.current?.stop();
       peerConnectionRef.current?.close();
     };
   }, [roomId]);
 
   const handleEndCall = () => {
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    screenTrackRef.current?.stop();
     peerConnectionRef.current?.close();
     socket.emit("leave_video_room", { roomId });
     navigate("/");
@@ -301,7 +346,12 @@ export default function VideoCall() {
           <div style={styles.controlsBar}>
             <ControlBtn onClick={handleToggleMic} active={micOn} icon={micOn ? "🎙️" : "🔇"} label={micOn ? "Mute" : "Unmute"} />
             <ControlBtn onClick={handleToggleCamera} active={cameraOn} icon={cameraOn ? "📷" : "🚫"} label={cameraOn ? "Cam Off" : "Cam On"} />
-            <ControlBtn icon="🖥️" label="Share" onClick={() => {}} active={true} />
+            <ControlBtn
+              icon="🖥️"
+              label={sharing ? "Stop Share" : "Share"}
+              onClick={handleToggleScreenShare}
+              active={!sharing}
+            />
             <button
               style={{ ...styles.runBtnControl, opacity: running ? 0.6 : 1 }}
               onClick={handleRunCode}
