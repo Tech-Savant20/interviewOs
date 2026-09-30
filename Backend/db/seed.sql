@@ -34,12 +34,21 @@ INSERT INTO jobs (job_id, company, job_name, experience, job_type, description, 
    'Turn product data into dashboards and insights using SQL and Python.', 'Data Analyst', 1, 500000, 800000);
 
 INSERT INTO job_skills (job_id, skill_name) VALUES
-  (1, 'React'), (1, 'Node.js'), (1, 'MySQL'),
+  (1, 'React'), (1, 'Node.js'), (1, 'MySQL'), (1, 'TypeScript'),
   (2, 'Node.js'), (2, 'Redis'), (2, 'MySQL'),
   (3, 'SQL'), (3, 'Python');
 
 INSERT INTO applications (app_id, name, email, ph_no, job_id, user_id, resume_url, status) VALUES
   (1, 'Aarav Mehta', 'student@demo.local', '+91 91234 56789', 1, 2, NULL, 'applied');
+
+-- Two practice answers for the Full Stack Developer application, so the readiness score has data
+INSERT INTO mock_interviews (user_id, job_id, topic, level, question, answer, score, feedback) VALUES
+  (2, 1, 'Node.js', 'Easy', 'What is the event loop in Node.js?',
+   'It lets Node run non-blocking I/O on one thread by queueing callbacks and running them when the call stack is empty.',
+   8, 'Clear and correct. Mention the phases (timers, poll, check) for full marks.'),
+  (2, 1, 'MySQL', 'Easy', 'What is the difference between INNER JOIN and LEFT JOIN?',
+   'Inner join returns only matching rows; left join returns all rows from the left table.',
+   7, 'Correct. Add that unmatched right-side columns come back as NULL.');
 
 INSERT INTO messages (sender_id, receiver_id, message) VALUES
   (1, 2, 'Hi Aarav, thanks for applying to the Full Stack Developer role!');

@@ -72,6 +72,8 @@ export default function VideoCall() {
   const [language, setLanguage] = useState("javascript");
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [review, setReview] = useState(null); // { scorecard } or { error }
   const [outputVisible, setOutputVisible] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
@@ -288,6 +290,25 @@ export default function VideoCall() {
     setRunning(false);
   };
 
+  // Interviewer only: AI scorecard of the candidate's code, using the last real run output
+  const handleAiReview = async () => {
+    if (reviewing) return;
+    setReviewing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/ai/review-code`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language, code, output }),
+      });
+      const data = await res.json();
+      setReview(data.success ? { scorecard: data.scorecard } : { error: data.message || "AI review failed" });
+    } catch (err) {
+      console.error(err);
+      setReview({ error: "Could not reach the AI review service" });
+    }
+    setReviewing(false);
+  };
+
   const handleSend = async () => {
     try {
       const res = await fetch(`${API_URL}/api/interviewer-inbox-users`, {
@@ -388,6 +409,15 @@ export default function VideoCall() {
             >
               {running ? "Running…" : "▶ Run Code"}
             </button>
+            {user?.user?.role === "interviewer" && (
+              <button
+                style={{ ...styles.aiReviewBtn, opacity: reviewing ? 0.6 : 1 }}
+                onClick={handleAiReview}
+                disabled={reviewing}
+              >
+                {reviewing ? "Reviewing…" : "✨ AI Review"}
+              </button>
+            )}
           </div>
 
           {/* Monaco Editor */}
@@ -424,6 +454,23 @@ export default function VideoCall() {
         </div>
       </div>
 
+      {/* AI REVIEW (interviewer only) */}
+      {review && (
+        <div style={styles.modalOverlay} onClick={() => setReview(null)}>
+          <div style={{ ...styles.modal, width: 440 }} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <span style={styles.modalTitle}>✨ AI Code Review</span>
+              <button style={styles.modalClose} onClick={() => setReview(null)}>✕</button>
+            </div>
+            {review.error ? (
+              <p style={styles.emptyState}>{review.error}</p>
+            ) : (
+              <ScorecardView scorecard={review.scorecard} />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* INBOX MODAL */}
       {openInbox && (
         <div style={styles.modalOverlay}>
@@ -448,6 +495,54 @@ export default function VideoCall() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const CRITERIA = [
+  { key: "correctness", label: "Correctness" },
+  { key: "efficiency", label: "Efficiency" },
+  { key: "readability", label: "Readability" },
+  { key: "edgeCases", label: "Edge cases" },
+];
+
+function ScorecardView({ scorecard }) {
+  return (
+    <div style={styles.scorecard}>
+      <div style={styles.scoreOverall}>
+        {scorecard.overall}<span style={styles.scoreOutOf}>/10 overall</span>
+      </div>
+      {CRITERIA.map(({ key, label }) => {
+        const value = scorecard.scores[key];
+        return (
+          <div key={key} style={styles.scoreRow}>
+            <span style={styles.scoreLabel}>{label}</span>
+            <div style={styles.scoreTrack}>
+              <div style={{ ...styles.scoreFill, width: `${(value ?? 0) * 10}%` }} />
+            </div>
+            <span style={styles.scoreValue}>{value ?? "–"}</span>
+          </div>
+        );
+      })}
+      {(scorecard.timeComplexity || scorecard.spaceComplexity) && (
+        <p style={styles.scoreMeta}>
+          Time {scorecard.timeComplexity || "?"} · Space {scorecard.spaceComplexity || "?"}
+        </p>
+      )}
+      {scorecard.summary && <p style={styles.scoreSummary}>{scorecard.summary}</p>}
+      {scorecard.strengths.length > 0 && (
+        <>
+          <div style={styles.scoreListTitle}>Strengths</div>
+          <ul style={styles.scoreList}>{scorecard.strengths.map((s) => <li key={s}>{s}</li>)}</ul>
+        </>
+      )}
+      {scorecard.improvements.length > 0 && (
+        <>
+          <div style={styles.scoreListTitle}>To improve</div>
+          <ul style={styles.scoreList}>{scorecard.improvements.map((s) => <li key={s}>{s}</li>)}</ul>
+        </>
+      )}
+      <p style={styles.scoreNote}>AI suggestion to support your judgement, not a final decision.</p>
     </div>
   );
 }
@@ -604,6 +699,26 @@ const styles = {
     padding: "6px 16px", background: "#238636", color: "#fff",
     border: "none", borderRadius: 6, fontWeight: 700, cursor: "pointer", fontSize: 13,
   },
+
+  aiReviewBtn: {
+    padding: "6px 14px", background: "#6e40c9", color: "#fff",
+    border: "none", borderRadius: 6, fontWeight: 700, cursor: "pointer", fontSize: 13,
+  },
+
+  /* AI SCORECARD */
+  scorecard: { padding: "16px 20px 20px", fontSize: 13, color: "#e6edf3" },
+  scoreOverall: { fontSize: 32, fontWeight: 800, color: "#f0f6fc", marginBottom: 12 },
+  scoreOutOf: { fontSize: 13, fontWeight: 500, color: "#8b949e", marginLeft: 4 },
+  scoreRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
+  scoreLabel: { width: 90, color: "#8b949e" },
+  scoreTrack: { flex: 1, height: 8, background: "#21262d", borderRadius: 4, overflow: "hidden" },
+  scoreFill: { height: "100%", background: "#a371f7", borderRadius: 4 },
+  scoreValue: { width: 20, textAlign: "right", fontWeight: 700 },
+  scoreMeta: { margin: "12px 0 0", color: "#8b949e" },
+  scoreSummary: { margin: "10px 0 0", lineHeight: 1.5 },
+  scoreListTitle: { marginTop: 12, fontWeight: 700, color: "#f0f6fc" },
+  scoreList: { margin: "4px 0 0", paddingLeft: 18, lineHeight: 1.5 },
+  scoreNote: { margin: "14px 0 0", fontSize: 11, color: "#6e7681" },
 
   /* EDITOR */
   editorWrap: { flex: 1, overflow: "hidden", background: "#1e1e1e" },

@@ -106,6 +106,24 @@ CREATE TABLE IF NOT EXISTS interviews (
   FOREIGN KEY (interviewer_id) REFERENCES users(user_id)       ON DELETE CASCADE
 );
 
+-- Every scored answer from the AI mock interview; job_id is set when the practice
+-- was started from an application ("Prepare with AI") and feeds the readiness score
+CREATE TABLE IF NOT EXISTS mock_interviews (
+  mock_id     INT AUTO_INCREMENT PRIMARY KEY,
+  user_id     INT NOT NULL,
+  job_id      INT NULL,
+  topic       VARCHAR(100),
+  level       VARCHAR(20),
+  question    TEXT NOT NULL,
+  answer      TEXT NOT NULL,
+  score       TINYINT NOT NULL,
+  feedback    TEXT,
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (job_id)  REFERENCES jobs(job_id)   ON DELETE SET NULL,
+  INDEX idx_mock_user_job (user_id, job_id)
+);
+
 CREATE TABLE IF NOT EXISTS messages (
   mess_id      INT AUTO_INCREMENT PRIMARY KEY,
   sender_id    INT NOT NULL,

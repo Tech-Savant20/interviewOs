@@ -24,6 +24,9 @@ InterviewOS brings the technical hiring pipeline into one place. Recruiters post
 - **Real-time chat** — Socket.IO messaging between recruiters and candidates, persisted in MySQL
 - **Live interview room** — WebRTC peer-to-peer video with mute, camera and screen share, plus a Monaco code editor whose code, language and run output stay in sync for both participants
 - **Code execution** — 12 languages (JavaScript, TypeScript, Python, Java, C++, C, C#, Go, Rust, Kotlin, Ruby, PHP) run in a sandbox through Judge0, with per-user rate limiting
+- **Job-targeted AI prep** — "Prepare with AI" on an application computes the skill gap between the candidate's profile and that job's required skills, then runs the AI mock interview on the missing skills first, at a difficulty set by the job's experience level
+- **Candidate readiness for recruiters** — the applicant page shows the skill-match percentage and the candidate's AI practice score for that specific job
+- **AI code review in the live round** — the interviewer gets a scorecard (correctness, efficiency, readability, edge cases, Big-O, strengths, improvements) grounded in the code's real execution output
 - **AI mock interview** — Groq's Llama 3.3 70B generates questions for a chosen topic and difficulty, then scores each answer from 0–10 with feedback; answers can be spoken (browser speech recognition) and questions are read aloud
 
 ---

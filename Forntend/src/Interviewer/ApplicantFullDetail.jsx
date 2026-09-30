@@ -48,7 +48,7 @@ export default function ApplicantFullDetail() {
         } else {
           setError(res.message || "Failed to fetch applicant details");
         }
-      } catch (err) {
+      } catch {
         setError("Something went wrong while fetching applicant details");
       }
     };
@@ -429,6 +429,13 @@ export default function ApplicantFullDetail() {
           {/* RIGHT */}
 
           <Box>
+            {applicantDetail.insights && (
+              <ReadinessCard
+                insights={applicantDetail.insights}
+                jobName={applicantDetail.job_name}
+              />
+            )}
+
             <Paper
               elevation={0}
               sx={{
@@ -679,6 +686,70 @@ export default function ApplicantFullDetail() {
         </Box>
       </Paper>
     </Box>
+  );
+}
+
+// Skill match with the job + how the candidate scored practising for it with the AI interviewer
+function ReadinessCard({ insights, jobName }) {
+  const { matchPercent, matched, missing, readiness, overallPractice } = insights;
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 3,
+        mb: 3,
+        borderRadius: 3,
+        border: "1px solid #bfdbfe",
+        bgcolor: "#eff6ff",
+      }}
+    >
+      <Typography variant="h6" fontWeight={800}>
+        Candidate Readiness
+      </Typography>
+      <Typography variant="body2" color="text.secondary" mb={2}>
+        For {jobName || "this job"}
+      </Typography>
+
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography sx={{ fontSize: 28, fontWeight: 900, color: "#1d4ed8" }}>
+            {matchPercent}%
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Skill match
+          </Typography>
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <Typography sx={{ fontSize: 28, fontWeight: 900, color: "#1d4ed8" }}>
+            {readiness.averageScore ?? "–"}
+            {readiness.averageScore !== null && (
+              <Typography component="span" sx={{ fontSize: 14, color: "text.secondary" }}>
+                /10
+              </Typography>
+            )}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            AI practice score ({readiness.attempts} answer{readiness.attempts === 1 ? "" : "s"})
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ display: "flex", gap: 0.8, flexWrap: "wrap" }}>
+        {matched.map((skill) => (
+          <Chip key={`m-${skill}`} size="small" label={`✓ ${skill}`} sx={{ bgcolor: "#dcfce7", color: "#166534", fontWeight: 700 }} />
+        ))}
+        {missing.map((skill) => (
+          <Chip key={`x-${skill}`} size="small" label={`✕ ${skill}`} sx={{ bgcolor: "#fee2e2", color: "#991b1b", fontWeight: 700 }} />
+        ))}
+      </Box>
+
+      {readiness.attempts === 0 && overallPractice.attempts > 0 && (
+        <Typography variant="caption" color="text.secondary" display="block" mt={1.5}>
+          No practice for this job yet · {overallPractice.averageScore}/10 across {overallPractice.attempts} general practice answers
+        </Typography>
+      )}
+    </Paper>
   );
 }
 

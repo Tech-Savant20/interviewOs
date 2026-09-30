@@ -1,6 +1,8 @@
 import { API_URL } from "../config.js";
-import { Box, Typography, Chip, Avatar } from "@mui/material";
+import { Box, Typography, Chip, Avatar, Button } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext.jsx";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import BusinessIcon from "@mui/icons-material/Business";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -15,6 +17,8 @@ const statusColors = {
 
 export default function MyApplications() {
   const [applications, setApplications] = useState([]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -162,12 +166,24 @@ export default function MyApplications() {
                 </Box>
               </Box>
 
-              <Chip
-                label={app.status || "Applied"}
-                color={statusColors[app.status] || "info"}
-                size="small"
-                sx={{ fontWeight: 600, px: 1 }}
-              />
+              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+                <Chip
+                  label={app.status || "Applied"}
+                  color={statusColors[app.status] || "info"}
+                  size="small"
+                  sx={{ fontWeight: 600, px: 1 }}
+                />
+                {app.jobId && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => navigate(`/interview-room/${user?.user?.user_id ?? "me"}?jobId=${app.jobId}`)}
+                    sx={{ textTransform: "none", fontWeight: 700 }}
+                  >
+                    🎯 Prepare with AI
+                  </Button>
+                )}
+              </Box>
             </Box>
           ))}
         </Box>

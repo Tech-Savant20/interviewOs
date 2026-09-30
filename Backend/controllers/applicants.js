@@ -3,6 +3,7 @@ import ExpressError from "../ExpressError.js";
 
 
 import SendEmail from "../utils/SendEmail.js";
+import { getCandidateInsights } from "./prep.js";
 
 export const applicants = async (req, res, next) => {
   try {
@@ -112,6 +113,7 @@ export const MyApplications = async (req, res, next) => {
     a.applied_at AS date,
     a.status,
 
+    j.job_id AS jobId,
     j.job_name AS jobTitle,
     j.company AS company,
     j.job_type AS jobType,
@@ -222,12 +224,14 @@ export const applicantFullDetail = async(req,res,next)=>{
 
    LEFT JOIN applications a
       ON sd.student_id = a.user_id
+      AND a.job_id IN (SELECT job_id FROM jobs WHERE posted_by = ?)
 
    LEFT JOIN jobs j
       ON a.job_id = j.job_id
 
-   WHERE sd.student_id = ?`,
-  [applicantId]
+   WHERE sd.student_id = ?
+   ORDER BY a.applied_at DESC`,
+  [req.user.id, applicantId]
 );
 
     console.log("Applicant full detail fetched for applicant ID:", applicantId, "Result:", rows);
@@ -236,9 +240,15 @@ export const applicantFullDetail = async(req,res,next)=>{
       return next(new ExpressError("Applicant not found", 404));
     }
 
+    const detail = rows[0];
+    // Skill match and AI-practice readiness for the job this candidate applied to
+    const insights = detail.job_id
+      ? await getCandidateInsights(detail.student_id, detail.job_id)
+      : null;
+
     res.status(200).json({
       success: true,
-      data: rows[0],
+      data: { ...detail, insights },
     });
 
   }catch(err){

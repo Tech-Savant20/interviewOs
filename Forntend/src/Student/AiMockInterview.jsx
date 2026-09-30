@@ -1,9 +1,13 @@
 import { API_URL } from "../config.js";
 import React, { useEffect, useRef, useState } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function InterviewRoom() {
+  // Set when the candidate starts from "Prepare with AI" on one of their applications
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get("jobId");
+  const [prep, setPrep] = useState(null);
   const [started, setStarted] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -23,6 +27,24 @@ export default function InterviewRoom() {
   const askedQuestionsRef = useRef([]);
 
   const navigate = useNavigate();
+
+  // Job-targeted prep: topics come from the job's skills (gaps first), difficulty from its experience
+  useEffect(() => {
+    if (!jobId) return;
+    const loadPrep = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/prep/job/${jobId}`, { credentials: "include" });
+        const data = await res.json();
+        if (!data.success) return;
+        setPrep(data);
+        if (data.suggestedTopics.length > 0) setSelectedTopic(data.suggestedTopics[0]);
+        setSelectedLevel(data.level);
+      } catch (err) {
+        console.log("Prep load error:", err);
+      }
+    };
+    loadPrep();
+  }, [jobId]);
 
   useEffect(() => {
     return () => {
@@ -112,7 +134,12 @@ export default function InterviewRoom() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ topic: selectedTopic, level: selectedLevel, previousQuestions: askedQuestionsRef.current }),
+        body: JSON.stringify({
+          topic: selectedTopic,
+          level: selectedLevel,
+          previousQuestions: askedQuestionsRef.current,
+          role: prep ? `${prep.job.job_name} at ${prep.job.company}` : undefined,
+        }),
       });
       const data = await res.json();
 
@@ -143,7 +170,13 @@ export default function InterviewRoom() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ question: questionRef.current, answer: studentAnswer }),
+        body: JSON.stringify({
+          question: questionRef.current,
+          answer: studentAnswer,
+          topic: selectedTopic,
+          level: selectedLevel,
+          jobId: prep ? prep.job.job_id : undefined,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -200,6 +233,14 @@ export default function InterviewRoom() {
     { id: "DSA", icon: "🧩", desc: "Arrays, trees, graphs" },
     { id: "Database", icon: "🗄️", desc: "SQL, NoSQL, queries" },
   ];
+
+  const jobTopics = prep
+    ? prep.suggestedTopics.map((skill) => {
+      const gap = prep.missing.includes(skill);
+      return { id: skill, icon: gap ? "🎯" : "✅", desc: gap ? "Skill gap: not on your profile" : "Already on your profile" };
+    })
+    : [];
+  const shownTopics = jobTopics.length > 0 ? jobTopics : topics;
 
   const levels = [
     { id: "Easy", color: "#16a34a", bg: "rgba(22,163,74,0.12)", border: "rgba(22,163,74,0.4)" },
@@ -259,6 +300,24 @@ export default function InterviewRoom() {
           margin-bottom: 36px;
           line-height: 1.6;
         }
+
+        /* ── JOB PREP CARD ── */
+        .ir-prep-card {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px 28px;
+          background: #1a1d27;
+          border: 1px solid rgba(239,68,68,0.25);
+          border-radius: 14px;
+          padding: 16px 18px;
+          margin: -12px 0 28px;
+        }
+        .ir-prep-stat { display: flex; flex-direction: column; }
+        .ir-prep-value { font-size: 24px; font-weight: 600; color: #f1f5f9; }
+        .ir-prep-value small { font-size: 13px; color: #64748b; }
+        .ir-prep-label { font-size: 12px; color: #64748b; }
+        .ir-prep-gap { flex-basis: 100%; font-size: 13px; color: #94a3b8; }
+        .ir-prep-gap strong { color: #fca5a5; }
 
         /* ── SECTION LABEL ── */
         .ir-section-label {
@@ -653,16 +712,45 @@ export default function InterviewRoom() {
           /* ══ LANDING PAGE ══════════════════════════════════ */
           <div className="ir-landing">
             <div className="ir-badge">🎙️ AI Interview Suite</div>
-            <h1 className="ir-title">Practice your next<br />technical interview</h1>
-            <p className="ir-subtitle">
-              Choose a topic and difficulty — the AI will ask questions,<br />
-              listen to your answers, and give real-time feedback.
-            </p>
+            {prep ? (
+              <>
+                <h1 className="ir-title">Prepare for<br />{prep.job.job_name}</h1>
+                <p className="ir-subtitle">
+                  Questions are tailored to {prep.job.company}'s required skills, starting with the ones
+                  missing from your profile. Your scores are shared with the recruiter as a readiness signal.
+                </p>
+                <div className="ir-prep-card">
+                  <div className="ir-prep-stat">
+                    <span className="ir-prep-value">{prep.matchPercent}%</span>
+                    <span className="ir-prep-label">skill match</span>
+                  </div>
+                  <div className="ir-prep-stat">
+                    <span className="ir-prep-value">
+                      {prep.readiness.averageScore ?? "–"}{prep.readiness.averageScore !== null && <small>/10</small>}
+                    </span>
+                    <span className="ir-prep-label">practice score · {prep.readiness.attempts} answers</span>
+                  </div>
+                  <div className="ir-prep-gap">
+                    {prep.missing.length > 0
+                      ? <>Skill gaps: <strong>{prep.missing.join(", ")}</strong></>
+                      : "You list every skill this job asks for."}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="ir-title">Practice your next<br />technical interview</h1>
+                <p className="ir-subtitle">
+                  Choose a topic and difficulty — the AI will ask questions,<br />
+                  listen to your answers, and give real-time feedback.
+                </p>
+              </>
+            )}
 
             {/* Topic */}
-            <div className="ir-section-label">Choose Topic</div>
+            <div className="ir-section-label">{prep ? "Job skills to practise" : "Choose Topic"}</div>
             <div className="ir-topic-grid">
-              {topics.map((t) => (
+              {shownTopics.map((t) => (
                 <div
                   key={t.id}
                   className={`ir-topic-card ${selectedTopic === t.id ? "active" : ""}`}
