@@ -36,18 +36,18 @@ export const interviewervalidation = async(req,res,next)=>{
 
     const decoded = verfiyToken(token);
     console.log("Decoded in middleware",decoded);
-    const [rows] = await db.execute(
-      "SELECT * FROM users WHERE user_id = ?",
-      [decoded.id]
-    );
-    console.log("User from DB in middleware", rows);
-
-    if(rows[0].role !== "interviewer"){
-      return res.status(403).json({message:"Access denied. Interviewer role required."})
-    }
 
     if(!decoded){
         return res.status(401).json({message:"Invalid or Expired token"})
+    }
+
+    const [rows] = await db.execute(
+      "SELECT role FROM users WHERE user_id = ?",
+      [decoded.id]
+    );
+
+    if(rows.length === 0 || rows[0].role !== "interviewer"){
+      return res.status(403).json({message:"Access denied. Interviewer role required."})
     }
 
     req.user = decoded;

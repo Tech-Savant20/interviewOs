@@ -593,8 +593,8 @@ export const updateSelectionStatus = async (req, res, next) => {
        FROM applications a
        JOIN jobs j
           ON a.job_id = j.job_id
-       WHERE a.app_id = ?`,
-      [application_id]
+       WHERE a.app_id = ? AND j.posted_by = ?`,
+      [application_id, req.user.id]
     );
 
     if (applicationRows.length === 0) {

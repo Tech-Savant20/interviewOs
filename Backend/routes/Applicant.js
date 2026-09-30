@@ -15,10 +15,10 @@ router.get("/my-applications",authMiddleware, MyApplications);
 router.get("/profileExist", authMiddleware, profileExist);
 router.get("/interviewer-inbox-users", interviewervalidation, getInterviewerInboxUsers);
 router.get("/student-inbox-users", authMiddleware, getStudentInboxUsers);
-router.get("/applicantFullDetail/:applicantId",  applicantFullDetail);
+router.get("/applicantFullDetail/:applicantId", interviewervalidation, applicantFullDetail);
 router.post("/student-profile-setup", authMiddleware, StudentProfileSetup);
 router.post("/interviewer-profile-setup",authMiddleware, InterviewerProfileSetup)
 router.get("/profile",authMiddleware,getProfile)
-router.put("/updateSelectionStatus",authMiddleware, updateSelectionStatus);
+router.put("/updateSelectionStatus",interviewervalidation, updateSelectionStatus);
 
 export default router;

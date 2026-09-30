@@ -4,7 +4,7 @@ import SendEmail from "../utils/SendEmail.js";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { io } from "../app.js";
-import s3 from "../utils/S3.js";
+import s3, { S3_BUCKET } from "../utils/S3.js";
 import redis from "../Redis.js";
 
 import {v4 as uuidv4} from "uuid";
@@ -195,8 +195,8 @@ export const scheduleInterview = async (req, res, next) => {
        LEFT JOIN users u
           ON u.user_id = ?
 
-       WHERE a.app_id = ?`,
-      [interviewer_id, application_id]
+       WHERE a.app_id = ? AND j.posted_by = ?`,
+      [interviewer_id, application_id, interviewer_id]
     );
 
     // application not found
@@ -512,9 +512,13 @@ export const getResumeUrl = async (req, res) => {
 
   console.log("Fetching resume for application ID:", applicationId);
 
+  // Only the recruiter who owns the job can open the applicant's resume
   const [rows] = await db.execute(
-    "SELECT resume_url FROM applications WHERE app_id = ?",
-    [applicationId]
+    `SELECT a.resume_url
+     FROM applications a
+     JOIN jobs j ON a.job_id = j.job_id
+     WHERE a.app_id = ? AND j.posted_by = ?`,
+    [applicationId, req.user.id]
   );
 
   console.log("Retrieved resume URL:", rows[0]?.resume_url);
@@ -536,7 +540,7 @@ export const getResumeUrl = async (req, res) => {
   const key = resumeUrl.split(".amazonaws.com/")[1];
 
   const command = new GetObjectCommand({
-    Bucket: "interviewos-resumes-915116533522",
+    Bucket: S3_BUCKET,
     Key: key,
   });
 

@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
 import ExpressError from "../ExpressError.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import s3 from "../utils/S3.js";
+import s3, { S3_BUCKET, S3_REGION } from "../utils/S3.js";
 import { queryWithRetry } from "../utils/queryWithRetry.js";
 
 import redis from "../Redis.js";
@@ -122,14 +122,14 @@ export const applyJob = async (req, res, next) => {
 
       await s3.send(
         new PutObjectCommand({
-          Bucket: "interviewos-resumes-915116533522",
+          Bucket: S3_BUCKET,
           Key: fileKey,
           Body: req.file.buffer,
           ContentType: req.file.mimetype,
         })
       );
 
-      resumeUrl = `https://interviewos-resumes-915116533522.s3.ap-south-1.amazonaws.com/${fileKey}`;
+      resumeUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${fileKey}`;
     }
 
     const [rows] = await db.execute(
@@ -650,9 +650,10 @@ export const deleteJob = async (req, res, next) => {
       return next(new ExpressError(400, "Job ID is required"));
     }
 
+    // Only the recruiter who posted the job may delete it
     const [result] = await db.execute(
-      "DELETE FROM jobs WHERE job_id = ?",
-      [job_id]
+      "DELETE FROM jobs WHERE job_id = ? AND posted_by = ?",
+      [job_id, req.user.id]
     );
 
     if (result.affectedRows === 0) {
@@ -694,9 +695,10 @@ export const editJob = async (req, res, next) => {
       return next(new ExpressError(400, "Job ID is required"));
     }
 
+    // Only the recruiter who posted the job may edit it
     const [job] = await db.execute(
-      "SELECT * FROM jobs WHERE job_id = ?",
-      [job_id]
+      "SELECT job_id FROM jobs WHERE job_id = ? AND posted_by = ?",
+      [job_id, req.user.id]
     );
 
     if (job.length === 0) {
