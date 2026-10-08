@@ -41,7 +41,7 @@ export default function Footer() {
               Quick Links
             </Typography>
             <Stack spacing={1} sx={{ mt: 1 }}>
-              <Link href="#" underline="none" color="inherit">
+              <Link href="/" underline="none" color="inherit">
                 Home
               </Link>
               <Link href="#" underline="none" color="inherit">
@@ -49,6 +49,12 @@ export default function Footer() {
               </Link>
               <Link href="#" underline="none" color="inherit">
                 Dashboard
+              </Link>
+              <Link href="/privacy" underline="none" color="inherit">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" underline="none" color="inherit">
+                Terms of Service
               </Link>
             </Stack>
           </Box>
@@ -59,10 +65,7 @@ export default function Footer() {
               Contact
             </Typography>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Email: support@interviewos.com
-            </Typography>
-            <Typography variant="body2">
-              Phone: +91 9876543210
+              Email: abhyudaytomar1@gmail.com
             </Typography>
           </Box>
         </Stack>

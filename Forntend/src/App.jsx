@@ -20,12 +20,15 @@ import VideoCall from './Interviewer/VideoCall.jsx'
 import ApplicantFullDetail from './Interviewer/ApplicantFullDetail.jsx'
 import OTPVerification from './Auth/OTPVerification.jsx'
 import EditJob from './Interviewer/JobEdit.jsx';
+import { PrivacyPolicy, TermsOfService } from './LegalPages.jsx';
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
     <Routes>
+      <Route path="/privacy" element={<PrivacyPolicy/>} />
+      <Route path="/terms" element={<TermsOfService/>} />
       <Route path="/Signup" element={<Signup/>} />
       <Route path="/login" element={<Login/>} />
       <Route path="/profileSetup" element={<ProfileSetup/>}/>
