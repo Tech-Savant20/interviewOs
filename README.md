@@ -1,169 +1,167 @@
-# InterviewOS 🎯
+﻿# InterviewOS
 
-> A full-stack recruitment and technical interview platform with live video interviews, a shared coding editor with real code execution, and an AI mock interviewer.
+A recruitment and technical interview platform combining applications, job-specific AI preparation, messaging, video interviews, a shared editor and code execution.
 
-**Live:** [interviewos.online](https://interviewos.online)
+**Live:** [interviewos.duckdns.org](https://interviewos.duckdns.org/)
 
----
+## Features and contribution
 
-## 📖 Overview
+- Candidate/recruiter accounts, email OTP verification, password login and Google sign-in.
+- Profiles, jobs, resume uploads, applications, applicant review and interview scheduling.
+- Job-specific skill-gap analysis prioritizes missing skills for AI practice, with difficulty based on the job's experience requirement.
+- Saved answers, feedback and scores support readiness assessment for a particular job.
+- Socket.IO chat and shared Monaco editor; WebRTC video, microphone, camera and screen sharing.
+- Twelve execution languages: JavaScript, TypeScript, Python, Java, C++, C, C#, Go, Rust, Kotlin, Ruby and PHP.
+- AI questions, answer evaluation and recruiter code-review scorecards.
+- Pagination uses the actual API page count; missing profiles offer a setup button; AI errors do not masquerade as login failures.
+- Public [Privacy Policy](https://interviewos.duckdns.org/privacy) and [Terms](https://interviewos.duckdns.org/terms).
 
-InterviewOS brings the technical hiring pipeline into one place. Recruiters post jobs, review applicants and run live interviews. Candidates build a profile, apply for jobs, chat with recruiters and practise with an AI interviewer. The interview room combines a peer-to-peer video call, a collaborative code editor and multi-language code execution.
+The contribution is the integration of job-specific skill gaps, targeted practice and live assessment into one hiring workflow. The project does not claim a new AI algorithm.
 
----
+## Stack
 
-## ✨ Features
-
-- **Authentication** — username/password login with bcrypt hashing, 4-digit email OTP verification (OTP and pending signup held in Redis for 10 minutes), JWT in an httpOnly cookie, and Google sign-in
-- **Two roles** — candidates (`user`) and interviewers/recruiters (`interviewer`), each with their own profile setup
-- **Jobs** — post, edit and delete jobs; browse with pagination and filter by skills, job type, experience and salary band
-- **Skill-match emails** — when a job is posted, candidates whose skills overlap are emailed through a BullMQ queue and a background worker
-- **Applications** — apply with a resume (stored in AWS S3, opened by recruiters through a 5-minute signed URL); recruiters shortlist, select or reject, and the candidate is emailed
-- **Recruiter dashboard** — total jobs, applicants, shortlisted and rejected counts, recent jobs and applicants (cached in Redis)
-- **Interview scheduling** — creates a unique meeting room, emails the candidate and notifies them in chat
-- **Real-time chat** — Socket.IO messaging between recruiters and candidates, persisted in MySQL
-- **Live interview room** — WebRTC peer-to-peer video with mute, camera and screen share, plus a Monaco code editor whose code, language and run output stay in sync for both participants
-- **Code execution** — 12 languages (JavaScript, TypeScript, Python, Java, C++, C, C#, Go, Rust, Kotlin, Ruby, PHP) run in a sandbox through Judge0, with per-user rate limiting
-- **Job-targeted AI prep** — "Prepare with AI" on an application computes the skill gap between the candidate's profile and that job's required skills, then runs the AI mock interview on the missing skills first, at a difficulty set by the job's experience level
-- **Candidate readiness for recruiters** — the applicant page shows the skill-match percentage and the candidate's AI practice score for that specific job
-- **AI code review in the live round** — the interviewer gets a scorecard (correctness, efficiency, readability, edge cases, Big-O, strengths, improvements) grounded in the code's real execution output
-- **AI mock interview** — Groq's Llama 3.3 70B generates questions for a chosen topic and difficulty, then scores each answer from 0–10 with feedback; answers can be spoken (browser speech recognition) and questions are read aloud
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
+| Component | Current configuration |
 |---|---|
-| Frontend | React 19, Vite, Material UI, React Router |
-| Backend | Node.js, Express 5 |
-| Database | MySQL (AWS RDS in production) |
-| Caching / Queues | Redis, BullMQ |
-| Real-time Communication | Socket.IO, WebRTC |
-| Code Editor | Monaco Editor |
-| Code Execution | Judge0 CE |
-| AI Integration | Groq API (Llama 3.3 70B) |
+| Frontend | React 19, Vite 7, Material UI, React Router, Monaco |
+| API | Node.js 22, Express 5 |
+| Database | Private AWS RDS MySQL 8.4 with TLS |
+| Cache/queue | Redis on EC2, BullMQ email worker |
+| Real-time | Socket.IO and WebRTC |
+| Execution | JDoodle in production; Judge0 adapters also available |
+| AI | Groq; configurable GROQ_MODEL, default openai/gpt-oss-120b |
 | Email | Brevo |
-| Infrastructure | AWS EC2, AWS RDS, AWS S3, Nginx (reverse proxy + SSL), PM2 |
-| CI/CD | GitHub Actions |
-| Auth | JWT, bcrypt, OTP email verification, Google OAuth 2.0 |
+| Hosting/files | EC2, Nginx, PM2, private S3, DuckDNS, Let's Encrypt |
+| Authentication | bcrypt, JWT httpOnly cookies, Redis OTPs, Google OAuth |
 
----
+Nginx serves `/var/www/interviewos` and proxies `/api/`, `/auth/` and `/socket.io/` to localhost:5000. Redis stays at localhost:6379. RDS permits port 3306 from EC2's security group. An EC2 IAM role grants S3 access; AWS access keys are not required in `.env`.
 
-## 🏗️ Architecture
+Redis stores OTPs and pending signups for 10 minutes, caches jobs/dashboard responses and supports email queues. BullMQ requires `maxRetriesPerRequest: null` in the Redis connection.
 
-<img width="882" height="668" alt="image" src="https://github.com/user-attachments/assets/5816845a-a1eb-4226-ac7b-a635f605d6a2" />
+## Local development
 
-
-**Key design decisions:**
-- **Redis for OTPs and caching** — short-lived OTPs and pending signups expire automatically, and hot reads (job list, dashboard) skip MySQL
-- **Background email queue** — BullMQ moves skill-match emails out of the request, so posting a job stays fast
-- **WebRTC for peer-to-peer video** — media flows directly between participants; the server only relays signalling over Socket.IO
-- **Socket.IO for code sync** — low-latency bi-directional updates for the collaborative editor
-- **Sandboxed execution** — untrusted code runs in Judge0's isolated containers, never on the application server
-
----
-
-## ☁️ Deployment
-
-- The React build and the Express API run on one **AWS EC2** instance (ap-south-1) behind **Nginx**, which serves the frontend, proxies `/api` and Socket.IO to the backend, and terminates SSL.
-- The backend runs under **PM2**. **MySQL** is on **AWS RDS** (SSL), **Redis** runs on the EC2 instance, and resumes are stored in **S3**.
-- **GitHub Actions** deploy on every push to `main`: the frontend is built and copied to the server over SSH, and a self-hosted runner on the EC2 instance installs backend dependencies and restarts PM2.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- Docker Desktop (runs MySQL and Redis locally)
-
-### Run locally
+Use Node.js 22 and Docker Compose. The frontend folder is spelled **Forntend**.
 
 ```bash
-# 1. Start MySQL + Redis (schema and demo data load automatically on first start)
 docker compose up -d
-
-# 2. Backend — http://localhost:5000
 cd Backend
-cp .env.example .env        # works as-is; add GROQ_API_KEY for the AI mock interview
-npm install
-npm run dev
-
-# 3. Frontend — http://localhost:5173 (in a second terminal)
-cd Forntend
-npm install
+cp .env.example .env
+npm ci
 npm run dev
 ```
 
-Log in with a demo account (password `password123`):
+In another terminal:
 
-| Username | Role |
-|---|---|
-| `demo_interviewer` | Interviewer / recruiter |
-| `demo_student` | Candidate |
+```bash
+cd Forntend
+npm ci
+npm run dev
+```
 
-Notes:
-- In development the frontend proxies `/api`, `/auth` and `/socket.io` to the backend (see `Forntend/vite.config.js`), so no CORS or cookie setup is needed. Production builds still call `https://interviewos.online`.
-- Without `BREVO_API_KEY`, emails are not sent. The signup OTP is printed in the backend console instead.
-- `RESUME_STORAGE=local` saves uploaded resumes to `Backend/uploads/` instead of S3.
-- Reset the database with `docker compose down -v && docker compose up -d`.
-- The schema is in `Backend/db/schema.sql` and the demo data in `Backend/db/seed.sql`.
+Run `npm run worker` from Backend for queued email processing. The local MySQL port is 3307; Redis is 6379. Vite proxies requests to port 5000 when the development API base is empty. Real keys are required for AI, execution and email features.
 
-### Environment Variables
+Compose loads `Backend/db/schema.sql` and `Backend/db/seed.sql` on initial database creation. Local usernames `demo_interviewer` and `demo_student` use `password123`. Do not import that fixed-ID seed or use those credentials in production.
 
-See `Backend/.env.example` for the full list. The main ones:
+## Production configuration
+
+Use `Backend/.env.example`; keep secrets out of GitHub and the frontend:
 
 ```env
-DB_HOST= DB_PORT= DB_USER= DB_PASSWORD= DB_NAME=
-DB_SSL=false               # omit in production (uses the AWS RDS CA bundle)
-REDIS_HOST= REDIS_PORT=
-JWT_SECRET=
-GROQ_API_KEY=              # AI mock interview questions + evaluation
-BREVO_API_KEY=             # transactional email
-JUDGE0_API_KEY=            # RapidAPI key for Judge0 CE (code execution)
-JUDGE0_API_URL=            # optional, defaults to https://judge0-ce.p.rapidapi.com
-CLIENT_ORIGINS=            # extra CORS origins, comma separated
-CLIENT_URL=                # frontend URL used in meeting links and emails
+NODE_ENV=production
+PORT=5000
+CLIENT_URL=https://interviewos.duckdns.org
+CLIENT_ORIGINS=https://interviewos.duckdns.org
+JWT_SECRET=YOUR_RANDOM_SECRET
+DB_HOST=YOUR_RDS_ENDPOINT
+DB_PORT=3306
+DB_USER=admin
+DB_PASSWORD="YOUR_RDS_PASSWORD"
+DB_NAME=interviewos
+DB_SSL=true
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+S3_BUCKET_NAME=YOUR_PRIVATE_BUCKET
+AWS_REGION=ap-south-1
+GROQ_API_KEY=YOUR_GROQ_KEY
+GROQ_MODEL=openai/gpt-oss-120b
+BREVO_API_KEY=YOUR_BREVO_KEY
+BREVO_SENDER_EMAIL=YOUR_VERIFIED_SENDER
+CODE_EXECUTION_PROVIDER=jdoodle
+JDOODLE_CLIENT_ID=YOUR_CLIENT_ID
+JDOODLE_CLIENT_SECRET=YOUR_CLIENT_SECRET
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://interviewos.duckdns.org/auth/google/callback
 ```
 
----
+Remove `RESUME_STORAGE=local` for S3 uploads. Download the RDS CA bundle to `Backend/global-bundle.pem`. The logical database name is `interviewos`, separate from the RDS instance identifier.
 
-## 🧪 Testing
+Set `Forntend/.env.production` before building:
+
+```env
+VITE_API_URL=https://interviewos.duckdns.org
+```
+
+The source still has an old-host fallback, so do not omit this variable. HTTP API calls on an HTTPS page are blocked. CORS origins must exactly match, including HTTPS and no trailing slash.
+
+## Providers and operational notes
+
+- **JDoodle:** credentials stay server-side. Free API documentation lists 20 credits/day shared across users; confirm your account allowance. App rate limit: 10 runs/user/minute. Output can contain compiler diagnostics, so Execution finished is not a verdict that the code passed. [Setup](deployment-guide/JDoodle_Setup.md)
+- **Groq:** the old Llama model was retired for free/developer usage. Select an active model using GROQ_MODEL. Only HTTP 401 redirects interview users to login; provider failures display errors. [Deprecations](https://console.groq.com/docs/deprecations)
+- **Brevo:** authorize the server's outbound IP and verify the sender. The current email helper catches delivery errors, so signup success does not prove email delivery. Check logs if OTP is missing; never publish OTPs or keys.
+- **Google:** uses basic openid/email/profile scopes, validates callback state and verified email, matches existing accounts by email and creates candidate accounts. [Setup and troubleshooting](deployment-guide/Google_And_Troubleshooting.md)
+
+## Deploy and update
+
+Follow the [Markdown guide](deployment-guide/InterviewOS_AWS_JDoodle_Deployment_Guide.md) or [PDF guide](deployment-guide/InterviewOS_AWS_JDoodle_Deployment_Guide.pdf).
+
+Some deployed runtime fixes were transferred using SCP and remain uncommitted locally. Synchronize those runtime files to the fork before assuming a fresh clone or `git pull` contains the full deployed implementation. Preserve `.env`, certificates and intentional edits before updating.
+
+After updating the runtime source:
+
+```bash
+cd ~/interviewos/Backend
+npm ci
+npm test
+pm2 restart interviewos-backend interviewos-worker --update-env
+pm2 save
+cd ../Forntend
+npm ci
+NODE_OPTIONS="--max-old-space-size=1536" npm run build
+```
+
+Only after a successful build:
+
+```bash
+sudo cp -r dist/. /var/www/interviewos/
+sudo chmod -R a+rX /var/www/interviewos
+```
+
+The legacy GitHub Actions workflows need secrets/runner configuration and adaptation for this EC2 instance. They currently omit the new frontend API setting and target different frontend paths. Pushing main is not proof that this manually configured deployment updated.
+
+## Demo jobs
+
+```bash
+cd ~/interviewos/Backend
+node scripts/seed-demo-jobs.js --dry-run
+node scripts/seed-demo-jobs.js
+```
+
+This adds six labeled fictional jobs, their skills and illustrative salaries, skips existing demo listings, preserves other records and clears only the jobs cache. The sample owner has no shared password. No email, applications or candidate profiles are created.
+
+## Checks
 
 ```bash
 cd Backend
 npm test
+cd ../Forntend
+node --test tests/interviewRequest.test.js
+npm run build
 ```
 
-Unit tests (Node's built-in test runner) cover the code-execution endpoint (Judge0 mocked), rate limiting, error handling, auth cookies and JWTs.
+Backend tests mock provider calls; they cover execution validation, rate limits, JWT/cookies, OAuth state and AI parsing. Frontend request tests prevent AI errors being treated as expired sessions. Use `npm.cmd` in PowerShell if npm.ps1 is blocked.
 
----
+Verified live: HTTPS, MySQL/Redis connections, OTP delivery, password login, session persistence, Google sign-in, JDoodle Python execution, AI questions, profile rendering, policy pages and two-page pagination. Two-participant video, resume/application handling and end-to-end chat still need separate validation.
 
-## 📸 Screenshots / Demo
+## Attribution and license
 
-<img width="1899" height="968" alt="image" src="https://github.com/user-attachments/assets/a97f28b6-3659-448a-890c-50ae90f9593e" />
-<img width="1917" height="976" alt="image" src="https://github.com/user-attachments/assets/1336ccc4-d48c-4b45-b933-a81b951eef31" />
-<img width="1896" height="972" alt="image" src="https://github.com/user-attachments/assets/e34631c1-7e53-4261-a45d-4f74f3ae9293" />
-
-
-
-
-## 🗺️ Roadmap
-
-- [ ] Add support for group/panel interviews
-- [ ] Expand language support in the code execution engine
-- [ ] Add analytics dashboard for interviewers
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 👤 Author
-
-**Rahul**
-[LinkedIn](https://linkedin.com/in/rahul-yadav-073756289) · [GitHub](https://github.com/rahulrao2-0) · yadavrahul81135@gmail.com
+Fork maintained by [Tech-Savant20](https://github.com/Tech-Savant20/interviewOs). Original project by [Rahul](https://github.com/rahulrao2-0/interviewOs). MIT License.
