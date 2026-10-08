@@ -2,6 +2,7 @@ import React from "react";
 import { Pagination, Stack } from "@mui/material";
 
 export default function PaginationBar({ page, setPage, totalPages }) {
+  if (totalPages <= 1) return null;
   
   const handleChange = (event, value) => {
     setPage(value);
@@ -10,7 +11,7 @@ export default function PaginationBar({ page, setPage, totalPages }) {
   return (
     <Stack spacing={2} alignItems="center" sx={{ mt: 3 }}>
       <Pagination
-        count={10}
+        count={totalPages}
         page={page}
         onChange={handleChange}
         variant="outlined"
