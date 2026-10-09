@@ -20,6 +20,7 @@ import { useAuth } from '../AuthContext';
 import "./Header.css";
 
 const pages = ['Products', 'Pricing', 'Blog'];
+const pagePaths = { Products: '/products', Pricing: '/pricing', Blog: '/blog' };
 const settings = ['Profile', 'My Applications', 'Dashboard', 'Help', 'Logout'];
 
 function Header() {
@@ -53,6 +54,11 @@ function Header() {
 
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
+  };
+
+  const handleNavigatePage = (page) => {
+    setAnchorElNav(null);
+    navigate(pagePaths[page]);
   };
 
   const handleMockInterview = () => {
@@ -160,7 +166,7 @@ function Header() {
             {pages.map((page) => (
               <Button
                 key={page}
-                onClick={handleCloseNavMenu}
+                onClick={() => handleNavigatePage(page)}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >
                 {page}
@@ -305,7 +311,7 @@ function Header() {
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
               {pages.map((page) => (
-                <MenuItem key={page} onClick={handleCloseNavMenu}>
+                <MenuItem key={page} onClick={() => handleNavigatePage(page)}>
                   <Typography sx={{ textAlign: 'center' }}>{page}</Typography>
                 </MenuItem>
               ))}

@@ -21,12 +21,20 @@ import ApplicantFullDetail from './Interviewer/ApplicantFullDetail.jsx'
 import OTPVerification from './Auth/OTPVerification.jsx'
 import EditJob from './Interviewer/JobEdit.jsx';
 import { PrivacyPolicy, TermsOfService } from './LegalPages.jsx';
+import { ProductsPage, PricingPage, BlogPage, BlogArticle, HelpPage, DashboardEntry } from './PublicPages.jsx';
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
     <Routes>
+      <Route path="/products" element={<ProductsPage/>} />
+      <Route path="/pricing" element={<PricingPage/>} />
+      <Route path="/blog" element={<BlogPage/>} />
+      <Route path="/blog/:slug" element={<BlogArticle/>} />
+      <Route path="/help" element={<HelpPage/>} />
+      <Route path="/dashboard" element={<DashboardEntry/>} />
+      <Route path="/jobs" element={<MainPage/>} />
       <Route path="/privacy" element={<PrivacyPolicy/>} />
       <Route path="/terms" element={<TermsOfService/>} />
       <Route path="/Signup" element={<Signup/>} />

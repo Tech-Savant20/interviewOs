@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography, Link, Stack } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -44,12 +45,14 @@ export default function Footer() {
               <Link href="/" underline="none" color="inherit">
                 Home
               </Link>
-              <Link href="#" underline="none" color="inherit">
+              <Link component={RouterLink} to="/jobs" underline="none" color="inherit">
                 Jobs
               </Link>
-              <Link href="#" underline="none" color="inherit">
+              <Link component={RouterLink} to="/dashboard" underline="none" color="inherit">
                 Dashboard
               </Link>
+              <Link component={RouterLink} to="/blog" underline="none" color="inherit">Blog</Link>
+              <Link component={RouterLink} to="/help" underline="none" color="inherit">Help & FAQs</Link>
               <Link href="/privacy" underline="none" color="inherit">
                 Privacy Policy
               </Link>
@@ -65,7 +68,7 @@ export default function Footer() {
               Contact
             </Typography>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Email: abhyudaytomar1@gmail.com
+              Email: <Link href="mailto:abhyudaytomar1@gmail.com" color="inherit">abhyudaytomar1@gmail.com</Link>
             </Typography>
           </Box>
         </Stack>
